@@ -12,7 +12,7 @@ project "Tests"
 	language			"C++"
 	cppdialect			"C++latest"
 	staticruntime		"On"
-	objdir				(".bin_obj/" .. outputdir .. "/%{prj.name}")
+	objdir				(".bin_int/" .. outputdir .. "/%{prj.name}")
 	targetdir			(".bin/"	 .. outputdir .. "/%{prj.name}")
 	files				{ "**.cc", "**.hh" }
 	includedirs			""
