@@ -13,15 +13,24 @@ namespace ARRAY_NAMESPACE
 	public:
 		Array() = default;
 
-		Array(size_t size, T data[]) : Size {size}, Data {data}
+		Array(T data[], size_t size) : Size {size}, Data {data}
 		{}
 
-		Array(size_t size) : Array {size, new T[size]}
+		Array(size_t size) : Array {new T[size], size}
 		{}
 
-		Array(size_t size, const T& initialValue) : Array {size}
+		template<typename U> Array(size_t size, const U& initialValue) : Array {size}
 		{
 			fill(initialValue);
+		}
+
+		template<typename U> Array(size_t size, std::initializer_list<U> initialValues) : Array {size}
+		{
+			assert(("Size of initializer list exceeds array size.", Size >= initialValues.size()));
+
+			auto element {begin()};
+			for(const U& value : initialValues)
+				*element++ = value;
 		}
 
 		Array(const Array& other) : Array {other.Size}
@@ -31,7 +40,7 @@ namespace ARRAY_NAMESPACE
 				element = *otherElement++;
 		}
 
-		Array(Array&& other) noexcept : Array {other.Size, std::exchange(other.Data, nullptr)}
+		Array(Array&& other) noexcept : Array {std::exchange(other.Data, nullptr), other.Size}
 		{}
 
 		~Array()
@@ -77,7 +86,15 @@ namespace ARRAY_NAMESPACE
 
 		bool operator==(const Array& other) const noexcept
 		{
-			return Size == other.Size && std::equal(begin(), end(), other.begin());
+			if(Size != other.Size)
+				return false;
+
+			auto otherElement {other.begin()};
+			for(const T& element : *this)
+				if(element != *otherElement++)
+					return false;
+
+			return true;
 		}
 
 		bool operator!=(const Array& other) const noexcept
@@ -170,7 +187,7 @@ namespace ARRAY_NAMESPACE
 			std::swap(Data, other.Data);
 		}
 
-		void fill(const T& value) noexcept
+		template<typename U> void fill(const U& value) noexcept
 		{
 			for(T& element : *this)
 				element = value;
@@ -244,7 +261,7 @@ namespace ARRAY_NAMESPACE
 
 			ArrayIterator operator++(int) const noexcept
 			{
-				ArrayIterator old {*this};
+				auto old {*this};
 				incrementPosition(1);
 				return old;
 			}
@@ -263,7 +280,7 @@ namespace ARRAY_NAMESPACE
 
 			ArrayIterator operator--(int) const noexcept
 			{
-				ArrayIterator old {*this};
+				auto old {*this};
 				decrementPosition(1);
 				return old;
 			}
@@ -282,7 +299,7 @@ namespace ARRAY_NAMESPACE
 
 			ArrayIterator operator+(ptrdiff_t offset) const noexcept
 			{
-				ArrayIterator copy {*this};
+				auto copy {*this};
 				return copy += offset;
 			}
 
@@ -305,7 +322,7 @@ namespace ARRAY_NAMESPACE
 
 			ArrayIterator operator-(ptrdiff_t offset) const noexcept
 			{
-				ArrayIterator copy {*this};
+				auto copy {*this};
 				return copy -= offset;
 			}
 
