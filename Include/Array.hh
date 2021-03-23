@@ -11,9 +11,9 @@ namespace ARRAY_NAMESPACE
 	template<typename T> class Array
 	{
 	public:
-		Array() = default;
+		Array() noexcept = default;
 
-		Array(T data[], size_t size) : Size {size}, Data {data}
+		Array(T data[], size_t size) noexcept : Size {size}, Data {data}
 		{}
 
 		Array(size_t size) : Array {new T[size], size}
@@ -72,19 +72,19 @@ namespace ARRAY_NAMESPACE
 			return *this;
 		}
 
-		T& operator[](size_t index) noexcept
+		[[nodiscard]] T& operator[](size_t index) noexcept
 		{
 			assert(("Index into array was out of range.", index < Size));
 			return Data[index];
 		}
 
-		const T& operator[](size_t index) const noexcept
+		[[nodiscard]] const T& operator[](size_t index) const noexcept
 		{
 			assert(("Index into array was out of range.", index < Size));
 			return Data[index];
 		}
 
-		bool operator==(const Array& other) const noexcept
+		[[nodiscard]] bool operator==(const Array& other) const noexcept
 		{
 			if(Size != other.Size)
 				return false;
@@ -97,86 +97,86 @@ namespace ARRAY_NAMESPACE
 			return true;
 		}
 
-		bool operator!=(const Array& other) const noexcept
+		[[nodiscard]] bool operator!=(const Array& other) const noexcept
 		{
 			return !operator==(other);
 		}
 
-		bool operator<(const Array& other) const noexcept
+		[[nodiscard]] bool operator<(const Array& other) const noexcept
 		{
 			return std::lexicographical_compare(begin(), end(), other.begin(), other.end());
 		}
 
-		bool operator>(const Array& other) const noexcept
+		[[nodiscard]] bool operator>(const Array& other) const noexcept
 		{
 			return other < *this;
 		}
 
-		bool operator<=(const Array& other) const noexcept
+		[[nodiscard]] bool operator<=(const Array& other) const noexcept
 		{
 			return !operator>(other);
 		}
 
-		bool operator>=(const Array& other) const noexcept
+		[[nodiscard]] bool operator>=(const Array& other) const noexcept
 		{
 			return !operator<(other);
 		}
 
-		auto operator<=>(const Array& other) const noexcept
+		[[nodiscard]] auto operator<=>(const Array& other) const noexcept
 		{
 			return std::lexicographical_compare_three_way(begin(), end(), other.begin(), other.end());
 		}
 
-		T& at(size_t index)
+		[[nodiscard]] T& at(size_t index)
 		{
 			if(index < Size)
 				return Data[index];
 			throw std::out_of_range("Index into array was out of range.");
 		}
 
-		const T& at(size_t index) const
+		[[nodiscard]] const T& at(size_t index) const
 		{
 			if(index < Size)
 				return Data[index];
 			throw std::out_of_range("Index into array was out of range.");
 		}
 
-		T& front() noexcept
+		[[nodiscard]] T& front() noexcept
 		{
 			return Data[0];
 		}
 
-		const T& front() const noexcept
+		[[nodiscard]] const T& front() const noexcept
 		{
 			return Data[0];
 		}
 
-		T& back() noexcept
+		[[nodiscard]] T& back() noexcept
 		{
 			return Data[Size - 1];
 		}
 
-		const T& back() const noexcept
+		[[nodiscard]] const T& back() const noexcept
 		{
 			return Data[Size - 1];
 		}
 
-		bool empty() const noexcept
+		[[nodiscard]] bool empty() const noexcept
 		{
 			return !Size;
 		}
 
-		size_t size() const noexcept
+		[[nodiscard]] size_t size() const noexcept
 		{
 			return Size;
 		}
 
-		T* data() noexcept
+		[[nodiscard]] T* data() noexcept
 		{
 			return Data;
 		}
 
-		const T* data() const noexcept
+		[[nodiscard]] const T* data() const noexcept
 		{
 			return Data;
 		}
@@ -200,49 +200,49 @@ namespace ARRAY_NAMESPACE
 
 		public:
 			using iterator_category = std::contiguous_iterator_tag;
-			using difference_type	= ptrdiff_t;
 			using value_type		= QualifiedT;
+			using difference_type	= ptrdiff_t;
 			using pointer			= QualifiedT*;
 			using reference			= QualifiedT&;
 
 			ArrayIterator() noexcept = default;
 
-			QualifiedT& operator*() const noexcept
+			[[nodiscard]] reference operator*() const noexcept
 			{
 				return *Position;
 			}
 
-			QualifiedT* operator->() const noexcept
+			[[nodiscard]] pointer operator->() const noexcept
 			{
 				return Position;
 			}
 
-			bool operator==(ArrayIterator other) const noexcept
+			template<typename U> [[nodiscard]] bool operator==(ArrayIterator<U> other) const noexcept
 			{
 				return Position == other.Position;
 			}
 
-			bool operator!=(ArrayIterator other) const noexcept
+			template<typename U> [[nodiscard]] bool operator!=(ArrayIterator<U> other) const noexcept
 			{
 				return Position != other.Position;
 			}
 
-			bool operator>(ArrayIterator other) const noexcept
+			template<typename U> [[nodiscard]] bool operator>(ArrayIterator<U> other) const noexcept
 			{
 				return Position > other.Position;
 			}
 
-			bool operator>=(ArrayIterator other) const noexcept
+			template<typename U> [[nodiscard]] bool operator>=(ArrayIterator<U> other) const noexcept
 			{
 				return Position >= other.Position;
 			}
 
-			bool operator<(ArrayIterator other) const noexcept
+			template<typename U> [[nodiscard]] bool operator<(ArrayIterator<U> other) const noexcept
 			{
 				return Position < other.Position;
 			}
 
-			bool operator<=(ArrayIterator other) const noexcept
+			template<typename U> [[nodiscard]] bool operator<=(ArrayIterator<U> other) const noexcept
 			{
 				return Position <= other.Position;
 			}
@@ -285,79 +285,78 @@ namespace ARRAY_NAMESPACE
 				return old;
 			}
 
-			ArrayIterator& operator+=(ptrdiff_t offset) noexcept
+			ArrayIterator& operator+=(difference_type offset) noexcept
 			{
 				incrementPosition(offset);
 				return *this;
 			}
 
-			const ArrayIterator& operator+=(ptrdiff_t offset) const noexcept
+			const ArrayIterator& operator+=(difference_type offset) const noexcept
 			{
 				incrementPosition(offset);
 				return *this;
 			}
 
-			ArrayIterator operator+(ptrdiff_t offset) const noexcept
+			[[nodiscard]] ArrayIterator operator+(difference_type offset) const noexcept
 			{
 				auto copy {*this};
 				return copy += offset;
 			}
 
-			friend ArrayIterator operator+(ptrdiff_t offset, ArrayIterator iterator) noexcept
+			friend [[nodiscard]] ArrayIterator operator+(difference_type offset, ArrayIterator iterator) noexcept
 			{
 				return iterator + offset;
 			}
 
-			ArrayIterator& operator-=(ptrdiff_t offset) noexcept
+			ArrayIterator& operator-=(difference_type offset) noexcept
 			{
 				decrementPosition(offset);
 				return *this;
 			}
 
-			const ArrayIterator& operator-=(ptrdiff_t offset) const noexcept
+			const ArrayIterator& operator-=(difference_type offset) const noexcept
 			{
 				decrementPosition(offset);
 				return *this;
 			}
 
-			ArrayIterator operator-(ptrdiff_t offset) const noexcept
+			[[nodiscard]] ArrayIterator operator-(difference_type offset) const noexcept
 			{
 				auto copy {*this};
 				return copy -= offset;
 			}
 
-			ptrdiff_t operator-(ArrayIterator other) const noexcept
+			template<typename U> [[nodiscard]] difference_type operator-(ArrayIterator<U> other) const noexcept
 			{
 				return Position - other.Position;
 			}
 
-			QualifiedT& operator[](size_t index) const noexcept
+			[[nodiscard]] reference operator[](size_t index) const noexcept
 			{
 				return *(*this + index);
 			}
 
 		private:
-			mutable QualifiedT* Position {};
+			mutable pointer Position {};
 
 #ifndef NDEBUG
-			QualifiedT* Begin {};
-			QualifiedT* End {};
+			pointer Begin {};
+			pointer End {};
 
-			ArrayIterator(QualifiedT* pos, QualifiedT* begin, QualifiedT* end) noexcept :
-				Position {pos}, Begin {begin}, End {end}
+			ArrayIterator(pointer pos, pointer begin, pointer end) noexcept : Position {pos}, Begin {begin}, End {end}
 			{}
 #else
-			ArrayIterator(QualifiedT* pos) noexcept : Position {pos}
+			ArrayIterator(pointer pos) noexcept : Position {pos}
 			{}
 #endif
 
-			void incrementPosition(ptrdiff_t offset) const noexcept
+			void incrementPosition(difference_type offset) const noexcept
 			{
 				assert(("Cannot increment iterator past end.", Position < End));
 				Position += offset;
 			}
 
-			void decrementPosition(ptrdiff_t offset) const noexcept
+			void decrementPosition(difference_type offset) const noexcept
 			{
 				assert(("Cannot decrement iterator before begin.", Begin < Position));
 				Position -= offset;
@@ -370,7 +369,7 @@ namespace ARRAY_NAMESPACE
 		using ReverseIterator	   = std::reverse_iterator<Iterator>;
 		using ConstReverseIterator = std::reverse_iterator<ConstIterator>;
 
-		Iterator begin() noexcept
+		[[nodiscard]] Iterator begin() noexcept
 		{
 #ifndef NDEBUG
 			return {Data, Data, Data + Size};
@@ -379,7 +378,7 @@ namespace ARRAY_NAMESPACE
 #endif
 		}
 
-		ConstIterator begin() const noexcept
+		[[nodiscard]] ConstIterator begin() const noexcept
 		{
 #ifndef NDEBUG
 			return {Data, Data, Data + Size};
@@ -388,7 +387,7 @@ namespace ARRAY_NAMESPACE
 #endif
 		}
 
-		Iterator end() noexcept
+		[[nodiscard]] Iterator end() noexcept
 		{
 #ifndef NDEBUG
 			T* endPos {Data + Size};
@@ -398,7 +397,7 @@ namespace ARRAY_NAMESPACE
 #endif
 		}
 
-		ConstIterator end() const noexcept
+		[[nodiscard]] ConstIterator end() const noexcept
 		{
 #ifndef NDEBUG
 			T* endPos {Data + Size};
@@ -408,42 +407,42 @@ namespace ARRAY_NAMESPACE
 #endif
 		}
 
-		ReverseIterator rbegin() noexcept
+		[[nodiscard]] ReverseIterator rbegin() noexcept
 		{
 			return ReverseIterator {end()};
 		}
 
-		ConstReverseIterator rbegin() const noexcept
+		[[nodiscard]] ConstReverseIterator rbegin() const noexcept
 		{
 			return ConstReverseIterator {end()};
 		}
 
-		ReverseIterator rend() noexcept
+		[[nodiscard]] ReverseIterator rend() noexcept
 		{
 			return ReverseIterator {begin()};
 		}
 
-		ConstReverseIterator rend() const noexcept
+		[[nodiscard]] ConstReverseIterator rend() const noexcept
 		{
 			return ConstReverseIterator {begin()};
 		}
 
-		ConstIterator cbegin() const noexcept
+		[[nodiscard]] ConstIterator cbegin() const noexcept
 		{
 			return begin();
 		}
 
-		ConstIterator cend() const noexcept
+		[[nodiscard]] ConstIterator cend() const noexcept
 		{
 			return end();
 		}
 
-		ConstReverseIterator crbegin() const noexcept
+		[[nodiscard]] ConstReverseIterator crbegin() const noexcept
 		{
 			return rbegin();
 		}
 
-		ConstReverseIterator crend() const noexcept
+		[[nodiscard]] ConstReverseIterator crend() const noexcept
 		{
 			return rend();
 		}

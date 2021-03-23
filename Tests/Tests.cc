@@ -209,8 +209,7 @@ void testAt()
 	const Array<int> a {10};
 	try
 	{
-		a.at(10);
-		assert(false);
+		assert(a.at(10) && false);
 	}
 	catch(std::out_of_range)
 	{}
@@ -259,9 +258,169 @@ void testFill()
 		assert(element == fillValue);
 }
 
+void testBeginAndEnd()
+{
+	constexpr size_t size {25};
+	Array<short> a {size};
+
+	auto data {a.data()};
+	assert(data == a.begin().operator->());
+	assert(data + size == a.end().operator->());
+}
+
+void testReverseBeginAndEnd()
+{
+	Array<short> a {3, {111, 222, 333}};
+	assert(*a.rbegin() == 333);
+	assert(*--a.rend() == 111);
+}
+
 void testIteratorContiguousProperty()
 {
 	static_assert(std::contiguous_iterator<Array<float>::Iterator>);
+}
+
+void testIteratorDefaultConstructor()
+{
+	Array<int> a {100};
+	Array<int>::Iterator it;
+	assert(it.operator->() == nullptr);
+}
+
+void testIteratorDereference()
+{
+	Array<std::string> a {25, {"AA", "BB", "CC"}};
+	auto first {a.begin()};
+	assert(*first == "AA");
+}
+
+void testIteratorArrow()
+{
+	Array<std::string> a {25, {"AAA", "BB", "C"}};
+	auto first {a.begin()};
+	assert(first->length() == 3);
+}
+
+void testIteratorEquality()
+{
+	Array<long> a {30};
+	auto begin1 {a.begin()};
+	auto begin2 {a.cbegin()};
+	auto end1 {a.end()};
+	auto end2 {a.cend()};
+	assert(begin1 == begin2);
+	assert(end1 == end2);
+}
+
+void testIteratorInequality()
+{
+	Array<long> a {30};
+	auto getsIncremented {a.cbegin()};
+	auto getsDecremented {a.cend()};
+	assert(a.begin() != ++getsIncremented);
+	assert(a.end() != --getsDecremented);
+}
+
+void testIteratorLessThan()
+{
+	const Array<long> a {30};
+	auto getsIncremented {a.begin()};
+	assert(a.begin() < ++getsIncremented);
+}
+
+void testIteratorGreaterThan()
+{
+	Array<long> a {30};
+	auto getsIncremented {a.begin()};
+	assert(++getsIncremented > a.begin());
+}
+
+void testIteratorLessThanOrEqual()
+{
+	Array<long> a {30};
+	assert(a.begin() <= a.begin());
+	auto getsIncremented {a.begin()};
+	assert(a.begin() <= ++getsIncremented);
+}
+
+void testIteratorGreaterThanOrEqual()
+{
+	Array<long> a {30};
+	auto getsIncremented {a.begin()};
+	assert(a.begin() >= a.begin());
+	assert(++getsIncremented >= a.begin());
+}
+
+void testIteratorPreIncrement()
+{
+	Array<long> a {3, {5, 6, 7}};
+	auto getsIncremented {a.begin()};
+	assert(*++getsIncremented == 6);
+}
+
+void testIteratorPostIncrement()
+{
+	Array<long> a {3, {5, 6, 7}};
+	auto incremented {a.begin()};
+	auto first {incremented++};
+	assert(*first == 5);
+	assert(*incremented == 6);
+}
+
+void testIteratorPreDecrement()
+{
+	Array<long> a {3, {5, 6, 7}};
+	auto getsDecremented {a.end()};
+	assert(*--getsDecremented == 7);
+}
+
+void testIteratorPostDecrement()
+{
+	Array<long> a {3, {5, 6, 7}};
+	auto getsDecremented {a.end()};
+	auto end {getsDecremented--};
+	assert(end != getsDecremented);
+}
+
+void testIteratorAdditionAssignment()
+{
+	Array<int> a {5, {10, 11, 12}};
+	auto begin {a.begin()};
+	assert(*(begin += 2) == 12);
+	assert(*begin == 12);
+}
+
+void testIteratorAddition()
+{
+	Array<int> a {5, {10, 11, 12}};
+	auto second {a.begin() + 1};
+	auto third {2 + a.begin()};
+	assert(*second == 11);
+	assert(*third == 12);
+}
+
+void testIteratorSubtractionAssignment()
+{
+	Array<int> a {3, {10, 11, 12}};
+	auto end {a.end()};
+	assert(*(end -= 2) == 11);
+	assert(*end == 11);
+}
+
+void testIteratorSubtraction()
+{
+	Array<int> a {3, {10, 11, 12}};
+	auto last {a.end() - 1};
+	auto offset {last - a.begin()};
+	assert(*last == 12);
+	assert(offset == a.size() - 1);
+}
+
+void testIteratorSubscript()
+{
+	Array<int> a {6, {11, 12, 13, 14, 15, 16}};
+	auto it {a.begin() + 2};
+	assert(it[2] == 15);
 }
 
 int main()
@@ -288,5 +447,27 @@ int main()
 	testEmpty();
 	testSwap();
 	testFill();
+	testBeginAndEnd();
+	testReverseBeginAndEnd();
 	testIteratorContiguousProperty();
+	testIteratorDefaultConstructor();
+	testIteratorDereference();
+	testIteratorArrow();
+	testIteratorEquality();
+	testIteratorInequality();
+	testIteratorLessThan();
+	testIteratorGreaterThan();
+	testIteratorLessThanOrEqual();
+	testIteratorGreaterThanOrEqual();
+	testIteratorPreIncrement();
+	testIteratorPostIncrement();
+	testIteratorPreDecrement();
+	testIteratorPostDecrement();
+	testIteratorAdditionAssignment();
+	testIteratorAddition();
+	testIteratorSubtractionAssignment();
+	testIteratorSubtraction();
+	testIteratorSubscript();
+
+	std::printf("All tests passed.\n");
 }
