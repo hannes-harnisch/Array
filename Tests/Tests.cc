@@ -237,6 +237,12 @@ void testEmpty()
 	assert(a.empty());
 }
 
+void testMaxSize()
+{
+	Array<int> a;
+	assert(a.max_size());
+}
+
 void testSwap()
 {
 	std::random_device random;
@@ -248,6 +254,10 @@ void testSwap()
 	a.swap(b);
 	assert(a == d);
 	assert(b == c);
+
+	swap(a, b);
+	assert(a == c);
+	assert(b == d);
 }
 
 void testFill()
@@ -277,13 +287,13 @@ void testReverseBeginAndEnd()
 
 void testIteratorContiguousProperty()
 {
-	static_assert(std::contiguous_iterator<Array<float>::Iterator>);
+	static_assert(std::contiguous_iterator<Array<float>::iterator>);
 }
 
 void testIteratorDefaultConstructor()
 {
 	Array<int> a {100};
-	Array<int>::Iterator it;
+	Array<int>::iterator it;
 	assert(it.operator->() == nullptr);
 }
 
@@ -445,6 +455,7 @@ int main()
 	testFront();
 	testBack();
 	testEmpty();
+	testMaxSize();
 	testSwap();
 	testFill();
 	testBeginAndEnd();

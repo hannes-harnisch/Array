@@ -11,20 +11,28 @@ namespace ARRAY_NAMESPACE
 	template<typename T> class Array
 	{
 	public:
+		using value_type	  = T;
+		using reference		  = T&;
+		using const_reference = const T&;
+		using pointer		  = T*;
+		using const_pointer	  = const T*;
+		using difference_type = std::ptrdiff_t;
+		using size_type		  = std::size_t;
+
 		Array() noexcept = default;
 
-		Array(T data[], size_t size) noexcept : Size {size}, Data {data}
+		Array(value_type data[], size_type size) noexcept : Size {size}, Data {data}
 		{}
 
-		Array(size_t size) : Array {new T[size], size}
+		Array(size_type size) : Array {new value_type[size], size}
 		{}
 
-		template<typename U> Array(size_t size, const U& initialValue) : Array {size}
+		template<typename U> Array(size_type size, const U& initialValue) : Array {size}
 		{
 			fill(initialValue);
 		}
 
-		template<typename U> Array(size_t size, std::initializer_list<U> initialValues) : Array {size}
+		template<typename U> Array(size_type size, std::initializer_list<U> initialValues) : Array {size}
 		{
 			assert(("Size of initializer list exceeds array size.", Size >= initialValues.size()));
 
@@ -36,7 +44,7 @@ namespace ARRAY_NAMESPACE
 		Array(const Array& other) : Array {other.Size}
 		{
 			auto otherElement {other.begin()};
-			for(T& element : *this)
+			for(reference element : *this)
 				element = *otherElement++;
 		}
 
@@ -54,10 +62,10 @@ namespace ARRAY_NAMESPACE
 
 			delete[] Data;
 			Size = other.Size;
-			Data = new T[Size];
+			Data = new value_type[Size];
 
 			auto otherElement {other.begin()};
-			for(T& element : *this)
+			for(reference element : *this)
 				element = *otherElement++;
 
 			return *this;
@@ -72,13 +80,13 @@ namespace ARRAY_NAMESPACE
 			return *this;
 		}
 
-		[[nodiscard]] T& operator[](size_t index) noexcept
+		[[nodiscard]] reference operator[](size_type index) noexcept
 		{
 			assert(("Index into array was out of range.", index < Size));
 			return Data[index];
 		}
 
-		[[nodiscard]] const T& operator[](size_t index) const noexcept
+		[[nodiscard]] const_reference operator[](size_type index) const noexcept
 		{
 			assert(("Index into array was out of range.", index < Size));
 			return Data[index];
@@ -90,7 +98,7 @@ namespace ARRAY_NAMESPACE
 				return false;
 
 			auto otherElement {other.begin()};
-			for(const T& element : *this)
+			for(const_reference element : *this)
 				if(element != *otherElement++)
 					return false;
 
@@ -127,36 +135,36 @@ namespace ARRAY_NAMESPACE
 			return std::lexicographical_compare_three_way(begin(), end(), other.begin(), other.end());
 		}
 
-		[[nodiscard]] T& at(size_t index)
+		[[nodiscard]] reference at(size_type index)
 		{
 			if(index < Size)
 				return Data[index];
 			throw std::out_of_range("Index into array was out of range.");
 		}
 
-		[[nodiscard]] const T& at(size_t index) const
+		[[nodiscard]] const_reference at(size_type index) const
 		{
 			if(index < Size)
 				return Data[index];
 			throw std::out_of_range("Index into array was out of range.");
 		}
 
-		[[nodiscard]] T& front() noexcept
+		[[nodiscard]] reference front() noexcept
 		{
 			return Data[0];
 		}
 
-		[[nodiscard]] const T& front() const noexcept
+		[[nodiscard]] const_reference front() const noexcept
 		{
 			return Data[0];
 		}
 
-		[[nodiscard]] T& back() noexcept
+		[[nodiscard]] reference back() noexcept
 		{
 			return Data[Size - 1];
 		}
 
-		[[nodiscard]] const T& back() const noexcept
+		[[nodiscard]] const_reference back() const noexcept
 		{
 			return Data[Size - 1];
 		}
@@ -166,17 +174,22 @@ namespace ARRAY_NAMESPACE
 			return !Size;
 		}
 
-		[[nodiscard]] size_t size() const noexcept
+		[[nodiscard]] size_type size() const noexcept
 		{
 			return Size;
 		}
 
-		[[nodiscard]] T* data() noexcept
+		[[nodiscard]] size_type max_size() const noexcept
+		{
+			return std::numeric_limits<size_type>::max();
+		}
+
+		[[nodiscard]] pointer data() noexcept
 		{
 			return Data;
 		}
 
-		[[nodiscard]] const T* data() const noexcept
+		[[nodiscard]] const_pointer data() const noexcept
 		{
 			return Data;
 		}
@@ -187,25 +200,30 @@ namespace ARRAY_NAMESPACE
 			std::swap(Data, other.Data);
 		}
 
+		friend void swap(Array& left, Array& right) noexcept
+		{
+			left.swap(right);
+		}
+
 		template<typename U> void fill(const U& value) noexcept
 		{
-			for(T& element : *this)
+			for(reference element : *this)
 				element = value;
 		}
 
 	private:
-		template<typename QualifiedT> class ArrayIterator
+		template<typename QualifiedT> class Iterator
 		{
 			friend Array;
 
 		public:
 			using iterator_category = std::contiguous_iterator_tag;
 			using value_type		= QualifiedT;
-			using difference_type	= ptrdiff_t;
+			using difference_type	= Array::difference_type;
 			using pointer			= QualifiedT*;
 			using reference			= QualifiedT&;
 
-			ArrayIterator() noexcept = default;
+			Iterator() noexcept = default;
 
 			[[nodiscard]] reference operator*() const noexcept
 			{
@@ -217,121 +235,121 @@ namespace ARRAY_NAMESPACE
 				return Position;
 			}
 
-			template<typename U> [[nodiscard]] bool operator==(ArrayIterator<U> other) const noexcept
+			template<typename U> [[nodiscard]] bool operator==(Iterator<U> other) const noexcept
 			{
 				return Position == other.Position;
 			}
 
-			template<typename U> [[nodiscard]] bool operator!=(ArrayIterator<U> other) const noexcept
+			template<typename U> [[nodiscard]] bool operator!=(Iterator<U> other) const noexcept
 			{
 				return Position != other.Position;
 			}
 
-			template<typename U> [[nodiscard]] bool operator>(ArrayIterator<U> other) const noexcept
+			template<typename U> [[nodiscard]] bool operator>(Iterator<U> other) const noexcept
 			{
 				return Position > other.Position;
 			}
 
-			template<typename U> [[nodiscard]] bool operator>=(ArrayIterator<U> other) const noexcept
+			template<typename U> [[nodiscard]] bool operator>=(Iterator<U> other) const noexcept
 			{
 				return Position >= other.Position;
 			}
 
-			template<typename U> [[nodiscard]] bool operator<(ArrayIterator<U> other) const noexcept
+			template<typename U> [[nodiscard]] bool operator<(Iterator<U> other) const noexcept
 			{
 				return Position < other.Position;
 			}
 
-			template<typename U> [[nodiscard]] bool operator<=(ArrayIterator<U> other) const noexcept
+			template<typename U> [[nodiscard]] bool operator<=(Iterator<U> other) const noexcept
 			{
 				return Position <= other.Position;
 			}
 
-			ArrayIterator& operator++() noexcept
+			Iterator& operator++() noexcept
 			{
 				incrementPosition(1);
 				return *this;
 			}
 
-			const ArrayIterator& operator++() const noexcept
+			const Iterator& operator++() const noexcept
 			{
 				incrementPosition(1);
 				return *this;
 			}
 
-			ArrayIterator operator++(int) const noexcept
+			Iterator operator++(int) const noexcept
 			{
 				auto old {*this};
 				incrementPosition(1);
 				return old;
 			}
 
-			ArrayIterator& operator--() noexcept
+			Iterator& operator--() noexcept
 			{
 				decrementPosition(1);
 				return *this;
 			}
 
-			const ArrayIterator& operator--() const noexcept
+			const Iterator& operator--() const noexcept
 			{
 				decrementPosition(1);
 				return *this;
 			}
 
-			ArrayIterator operator--(int) const noexcept
+			Iterator operator--(int) const noexcept
 			{
 				auto old {*this};
 				decrementPosition(1);
 				return old;
 			}
 
-			ArrayIterator& operator+=(difference_type offset) noexcept
+			Iterator& operator+=(difference_type offset) noexcept
 			{
 				incrementPosition(offset);
 				return *this;
 			}
 
-			const ArrayIterator& operator+=(difference_type offset) const noexcept
+			const Iterator& operator+=(difference_type offset) const noexcept
 			{
 				incrementPosition(offset);
 				return *this;
 			}
 
-			[[nodiscard]] ArrayIterator operator+(difference_type offset) const noexcept
+			[[nodiscard]] Iterator operator+(difference_type offset) const noexcept
 			{
 				auto copy {*this};
 				return copy += offset;
 			}
 
-			friend [[nodiscard]] ArrayIterator operator+(difference_type offset, ArrayIterator iterator) noexcept
+			friend [[nodiscard]] Iterator operator+(difference_type offset, Iterator iterator) noexcept
 			{
 				return iterator + offset;
 			}
 
-			ArrayIterator& operator-=(difference_type offset) noexcept
+			Iterator& operator-=(difference_type offset) noexcept
 			{
 				decrementPosition(offset);
 				return *this;
 			}
 
-			const ArrayIterator& operator-=(difference_type offset) const noexcept
+			const Iterator& operator-=(difference_type offset) const noexcept
 			{
 				decrementPosition(offset);
 				return *this;
 			}
 
-			[[nodiscard]] ArrayIterator operator-(difference_type offset) const noexcept
+			[[nodiscard]] Iterator operator-(difference_type offset) const noexcept
 			{
 				auto copy {*this};
 				return copy -= offset;
 			}
 
-			template<typename U> [[nodiscard]] difference_type operator-(ArrayIterator<U> other) const noexcept
+			template<typename U> [[nodiscard]] difference_type operator-(Iterator<U> other) const noexcept
 			{
 				return Position - other.Position;
 			}
 
-			[[nodiscard]] reference operator[](size_t index) const noexcept
+			[[nodiscard]] reference operator[](size_type index) const noexcept
 			{
 				return *(*this + index);
 			}
@@ -343,10 +361,10 @@ namespace ARRAY_NAMESPACE
 			pointer Begin {};
 			pointer End {};
 
-			ArrayIterator(pointer pos, pointer begin, pointer end) noexcept : Position {pos}, Begin {begin}, End {end}
+			Iterator(pointer pos, pointer begin, pointer end) noexcept : Position {pos}, Begin {begin}, End {end}
 			{}
 #else
-			ArrayIterator(pointer pos) noexcept : Position {pos}
+			Iterator(pointer pos) noexcept : Position {pos}
 			{}
 #endif
 
@@ -364,12 +382,12 @@ namespace ARRAY_NAMESPACE
 		};
 
 	public:
-		using Iterator			   = ArrayIterator<T>;
-		using ConstIterator		   = ArrayIterator<const T>;
-		using ReverseIterator	   = std::reverse_iterator<Iterator>;
-		using ConstReverseIterator = std::reverse_iterator<ConstIterator>;
+		using iterator				 = Iterator<value_type>;
+		using const_iterator		 = Iterator<const value_type>;
+		using reverse_iterator		 = std::reverse_iterator<iterator>;
+		using const_reverse_iterator = std::reverse_iterator<const_iterator>;
 
-		[[nodiscard]] Iterator begin() noexcept
+		[[nodiscard]] iterator begin() noexcept
 		{
 #ifndef NDEBUG
 			return {Data, Data, Data + Size};
@@ -378,7 +396,7 @@ namespace ARRAY_NAMESPACE
 #endif
 		}
 
-		[[nodiscard]] ConstIterator begin() const noexcept
+		[[nodiscard]] const_iterator begin() const noexcept
 		{
 #ifndef NDEBUG
 			return {Data, Data, Data + Size};
@@ -387,68 +405,68 @@ namespace ARRAY_NAMESPACE
 #endif
 		}
 
-		[[nodiscard]] Iterator end() noexcept
+		[[nodiscard]] iterator end() noexcept
 		{
 #ifndef NDEBUG
-			T* endPos {Data + Size};
+			pointer endPos {Data + Size};
 			return {endPos, Data, endPos};
 #else
 			return {Data + Size};
 #endif
 		}
 
-		[[nodiscard]] ConstIterator end() const noexcept
+		[[nodiscard]] const_iterator end() const noexcept
 		{
 #ifndef NDEBUG
-			T* endPos {Data + Size};
+			pointer endPos {Data + Size};
 			return {endPos, Data, endPos};
 #else
 			return {Data + Size};
 #endif
 		}
 
-		[[nodiscard]] ReverseIterator rbegin() noexcept
+		[[nodiscard]] reverse_iterator rbegin() noexcept
 		{
-			return ReverseIterator {end()};
+			return reverse_iterator {end()};
 		}
 
-		[[nodiscard]] ConstReverseIterator rbegin() const noexcept
+		[[nodiscard]] const_reverse_iterator rbegin() const noexcept
 		{
-			return ConstReverseIterator {end()};
+			return const_reverse_iterator {end()};
 		}
 
-		[[nodiscard]] ReverseIterator rend() noexcept
+		[[nodiscard]] reverse_iterator rend() noexcept
 		{
-			return ReverseIterator {begin()};
+			return reverse_iterator {begin()};
 		}
 
-		[[nodiscard]] ConstReverseIterator rend() const noexcept
+		[[nodiscard]] const_reverse_iterator rend() const noexcept
 		{
-			return ConstReverseIterator {begin()};
+			return const_reverse_iterator {begin()};
 		}
 
-		[[nodiscard]] ConstIterator cbegin() const noexcept
+		[[nodiscard]] const_iterator cbegin() const noexcept
 		{
 			return begin();
 		}
 
-		[[nodiscard]] ConstIterator cend() const noexcept
+		[[nodiscard]] const_iterator cend() const noexcept
 		{
 			return end();
 		}
 
-		[[nodiscard]] ConstReverseIterator crbegin() const noexcept
+		[[nodiscard]] const_reverse_iterator crbegin() const noexcept
 		{
 			return rbegin();
 		}
 
-		[[nodiscard]] ConstReverseIterator crend() const noexcept
+		[[nodiscard]] const_reverse_iterator crend() const noexcept
 		{
 			return rend();
 		}
 
 	private:
-		size_t Size {};
-		T* Data {};
+		size_type Size {};
+		pointer Data {};
 	};
 }
