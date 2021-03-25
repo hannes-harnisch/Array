@@ -35,17 +35,12 @@ namespace ARRAY_NAMESPACE
 		template<typename U> Array(size_type size, std::initializer_list<U> initialValues) : Array {size}
 		{
 			assert(("Size of initializer list exceeds array size.", Size >= initialValues.size()));
-
-			auto element {begin()};
-			for(const U& value : initialValues)
-				*element++ = value;
+			std::copy_n(initialValues.begin(), initialValues.size(), Data);
 		}
 
 		Array(const Array& other) : Array {other.Size}
 		{
-			auto otherElement {other.begin()};
-			for(reference element : *this)
-				element = *otherElement++;
+			std::copy_n(other.Data, Size, Data);
 		}
 
 		Array(Array&& other) noexcept : Array {std::exchange(other.Data, nullptr), other.Size}
@@ -58,24 +53,19 @@ namespace ARRAY_NAMESPACE
 
 		Array& operator=(const Array& other)
 		{
-			assert(("Attempted to assign array to itself.", this != &other));
+			auto newData {new value_type[other.Size]};
+			std::copy_n(other.Data, other.Size, newData);
 
 			delete[] Data;
 			Size = other.Size;
-			Data = new value_type[Size];
-
-			auto otherElement {other.begin()};
-			for(reference element : *this)
-				element = *otherElement++;
+			Data = newData;
 
 			return *this;
 		}
 
 		Array& operator=(Array&& other) noexcept
 		{
-			assert(("Attempted to assign array to itself.", this != &other));
-
-			Size = other.Size;
+			std::swap(Size, other.Size);
 			std::swap(Data, other.Data);
 			return *this;
 		}
@@ -207,8 +197,7 @@ namespace ARRAY_NAMESPACE
 
 		template<typename U> void fill(const U& value) noexcept
 		{
-			for(reference element : *this)
-				element = value;
+			std::fill(begin(), end(), value);
 		}
 
 	private:
