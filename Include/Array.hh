@@ -27,7 +27,7 @@ namespace ARRAY_NAMESPACE
 		Array(size_type size) : Array {new value_type[size], size}
 		{}
 
-		template<typename U> Array(size_type size, const U& initialValue) : Array {size}
+		template<typename U> Array(size_type size, U&& initialValue) : Array {size}
 		{
 			fill(initialValue);
 		}
@@ -88,7 +88,7 @@ namespace ARRAY_NAMESPACE
 				return false;
 
 			auto otherElement {other.begin()};
-			for(const_reference element : *this)
+			for(auto&& element : *this)
 				if(element != *otherElement++)
 					return false;
 
@@ -169,7 +169,7 @@ namespace ARRAY_NAMESPACE
 			return Size;
 		}
 
-		[[nodiscard]] size_type max_size() const noexcept
+		[[nodiscard]] constexpr size_type max_size() const noexcept
 		{
 			return std::numeric_limits<size_type>::max();
 		}
@@ -195,7 +195,7 @@ namespace ARRAY_NAMESPACE
 			left.swap(right);
 		}
 
-		template<typename U> void fill(const U& value) noexcept
+		template<typename U> void fill(U&& value) noexcept
 		{
 			std::fill(begin(), end(), value);
 		}
