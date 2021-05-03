@@ -157,7 +157,7 @@ namespace ARRAY_NAMESPACE
 			return count;
 		}
 
-		[[nodiscard]] size_type max_size() const noexcept
+		[[nodiscard]] constexpr size_type max_size() const noexcept
 		{
 			return std::numeric_limits<size_type>::max();
 		}
