@@ -93,12 +93,10 @@ void testMoveAssignment()
 	Array<char> a {sizeA, initialValueA};
 	Array<char> b {10};
 	auto dataPtrA {a.data()};
-	auto dataPtrB {b.data()};
 	b = std::move(a);
 
 	assert(b.size() == sizeA);
 	assert(b.data() == dataPtrA);
-	assert(a.data() == dataPtrB);
 	for(char element : b)
 		assert(element == initialValueA);
 }
@@ -361,6 +359,16 @@ void testIteratorGreaterThanOrEqual()
 	assert(++getsIncremented >= a.begin());
 }
 
+void testIteratorSpaceship()
+{
+	Array<long> a {30};
+	const auto secondElement {a.begin() + 1};
+	auto getsMutated {a.begin() + 2};
+	assert((getsMutated <=> secondElement) == std::strong_ordering::greater);
+	assert((--getsMutated <=> secondElement) == std::strong_ordering::equal);
+	assert((--getsMutated <=> secondElement) == std::strong_ordering::less);
+}
+
 void testIteratorPreIncrement()
 {
 	Array<long> a {3, {5, 6, 7}};
@@ -470,6 +478,7 @@ int main()
 	testIteratorGreaterThan();
 	testIteratorLessThanOrEqual();
 	testIteratorGreaterThanOrEqual();
+	testIteratorSpaceship();
 	testIteratorPreIncrement();
 	testIteratorPostIncrement();
 	testIteratorPreDecrement();

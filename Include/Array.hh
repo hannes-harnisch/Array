@@ -21,77 +21,65 @@ namespace ARRAY_NAMESPACE
 
 		Array() noexcept = default;
 
-		Array(value_type data[], size_type size) noexcept : Size {size}, Data {data}
+		Array(value_type data[], size_type size) noexcept : count {size}, array {data}
 		{}
 
 		Array(size_type size) : Array {new value_type[size], size}
 		{}
 
-		template<typename U> Array(size_type size, const U& initialValue) : Array {size}
+		template<typename U> Array(size_type size, U&& initialValue) : Array {size}
 		{
-			fill(initialValue);
+			fill(std::forward<U>(initialValue));
 		}
 
 		template<typename U> Array(size_type size, std::initializer_list<U> initialValues) : Array {size}
 		{
-			assert(("Size of initializer list exceeds array size.", Size >= initialValues.size()));
-			std::copy_n(initialValues.begin(), initialValues.size(), Data);
+			assert(("Size of initializer list exceeds array size.", count >= initialValues.size()));
+			std::copy_n(initialValues.begin(), initialValues.size(), array);
 		}
 
-		Array(const Array& other) : Array {other.Size}
+		Array(const Array& other) : Array {other.count}
 		{
-			std::copy_n(other.Data, Size, Data);
+			std::copy_n(other.array, count, array);
 		}
 
-		Array(Array&& other) noexcept : Array {std::exchange(other.Data, nullptr), other.Size}
-		{}
+		Array(Array&& other) noexcept : Array {}
+		{
+			swap(other);
+		}
 
 		~Array()
 		{
-			delete[] Data;
+			delete[] array;
 		}
 
-		Array& operator=(const Array& other)
+		Array& operator=(Array other) noexcept
 		{
-			auto newData {new value_type[other.Size]};
-			std::copy_n(other.Data, other.Size, newData);
-
-			delete[] Data;
-			Size = other.Size;
-			Data = newData;
-
-			return *this;
-		}
-
-		Array& operator=(Array&& other) noexcept
-		{
-			std::swap(Size, other.Size);
-			std::swap(Data, other.Data);
+			swap(other);
 			return *this;
 		}
 
 		[[nodiscard]] reference operator[](size_type index) noexcept
 		{
-			assert(("Index into array was out of range.", index < Size));
-			return Data[index];
+			assert(("Index into array was out of range.", index < count));
+			return array[index];
 		}
 
 		[[nodiscard]] const_reference operator[](size_type index) const noexcept
 		{
-			assert(("Index into array was out of range.", index < Size));
-			return Data[index];
+			assert(("Index into array was out of range.", index < count));
+			return array[index];
 		}
 
 		[[nodiscard]] bool operator==(const Array& other) const noexcept
 		{
-			if(Size != other.Size)
+			if(count != other.count)
 				return false;
-
+			// std::equal not used here because of faulty MSVC implementation
 			auto otherElement {other.begin()};
-			for(const_reference element : *this)
+			for(auto&& element : *this)
 				if(element != *otherElement++)
 					return false;
-
 			return true;
 		}
 
@@ -127,46 +115,46 @@ namespace ARRAY_NAMESPACE
 
 		[[nodiscard]] reference at(size_type index)
 		{
-			if(index < Size)
-				return Data[index];
+			if(index < count)
+				return array[index];
 			throw std::out_of_range("Index into array was out of range.");
 		}
 
 		[[nodiscard]] const_reference at(size_type index) const
 		{
-			if(index < Size)
-				return Data[index];
+			if(index < count)
+				return array[index];
 			throw std::out_of_range("Index into array was out of range.");
 		}
 
 		[[nodiscard]] reference front() noexcept
 		{
-			return Data[0];
+			return array[0];
 		}
 
 		[[nodiscard]] const_reference front() const noexcept
 		{
-			return Data[0];
+			return array[0];
 		}
 
 		[[nodiscard]] reference back() noexcept
 		{
-			return Data[Size - 1];
+			return array[count - 1];
 		}
 
 		[[nodiscard]] const_reference back() const noexcept
 		{
-			return Data[Size - 1];
+			return array[count - 1];
 		}
 
 		[[nodiscard]] bool empty() const noexcept
 		{
-			return !Size;
+			return !count;
 		}
 
 		[[nodiscard]] size_type size() const noexcept
 		{
-			return Size;
+			return count;
 		}
 
 		[[nodiscard]] size_type max_size() const noexcept
@@ -176,18 +164,18 @@ namespace ARRAY_NAMESPACE
 
 		[[nodiscard]] pointer data() noexcept
 		{
-			return Data;
+			return array;
 		}
 
 		[[nodiscard]] const_pointer data() const noexcept
 		{
-			return Data;
+			return array;
 		}
 
 		void swap(Array& other) noexcept
 		{
-			std::swap(Size, other.Size);
-			std::swap(Data, other.Data);
+			std::swap(count, other.count);
+			std::swap(array, other.array);
 		}
 
 		friend void swap(Array& left, Array& right) noexcept
@@ -195,9 +183,9 @@ namespace ARRAY_NAMESPACE
 			left.swap(right);
 		}
 
-		template<typename U> void fill(const U& value) noexcept
+		template<typename U> void fill(U&& value) noexcept
 		{
-			std::fill(begin(), end(), value);
+			std::fill(begin(), end(), std::forward<U>(value));
 		}
 
 	private:
@@ -254,19 +242,18 @@ namespace ARRAY_NAMESPACE
 				return Position <= other.Position;
 			}
 
+			template<typename U> [[nodiscard]] auto operator<=>(Iterator<U> other) const noexcept
+			{
+				return Position <=> other.Position;
+			}
+
 			Iterator& operator++() noexcept
 			{
 				incrementPosition(1);
 				return *this;
 			}
 
-			const Iterator& operator++() const noexcept
-			{
-				incrementPosition(1);
-				return *this;
-			}
-
-			Iterator operator++(int) const noexcept
+			Iterator operator++(int) noexcept
 			{
 				auto old {*this};
 				incrementPosition(1);
@@ -279,13 +266,7 @@ namespace ARRAY_NAMESPACE
 				return *this;
 			}
 
-			const Iterator& operator--() const noexcept
-			{
-				decrementPosition(1);
-				return *this;
-			}
-
-			Iterator operator--(int) const noexcept
+			Iterator operator--(int) noexcept
 			{
 				auto old {*this};
 				decrementPosition(1);
@@ -293,12 +274,6 @@ namespace ARRAY_NAMESPACE
 			}
 
 			Iterator& operator+=(difference_type offset) noexcept
-			{
-				incrementPosition(offset);
-				return *this;
-			}
-
-			const Iterator& operator+=(difference_type offset) const noexcept
 			{
 				incrementPosition(offset);
 				return *this;
@@ -321,12 +296,6 @@ namespace ARRAY_NAMESPACE
 				return *this;
 			}
 
-			const Iterator& operator-=(difference_type offset) const noexcept
-			{
-				decrementPosition(offset);
-				return *this;
-			}
-
 			[[nodiscard]] Iterator operator-(difference_type offset) const noexcept
 			{
 				auto copy {*this};
@@ -344,7 +313,7 @@ namespace ARRAY_NAMESPACE
 			}
 
 		private:
-			mutable pointer Position {};
+			pointer Position {};
 
 #ifndef NDEBUG
 			pointer Begin {};
@@ -357,13 +326,13 @@ namespace ARRAY_NAMESPACE
 			{}
 #endif
 
-			void incrementPosition(difference_type offset) const noexcept
+			void incrementPosition(difference_type offset) noexcept
 			{
 				assert(("Cannot increment iterator past end.", Position < End));
 				Position += offset;
 			}
 
-			void decrementPosition(difference_type offset) const noexcept
+			void decrementPosition(difference_type offset) noexcept
 			{
 				assert(("Cannot decrement iterator before begin.", Begin < Position));
 				Position -= offset;
@@ -379,7 +348,7 @@ namespace ARRAY_NAMESPACE
 		[[nodiscard]] iterator begin() noexcept
 		{
 #ifndef NDEBUG
-			return {Data, Data, Data + Size};
+			return {array, array, array + count};
 #else
 			return {Data};
 #endif
@@ -388,7 +357,7 @@ namespace ARRAY_NAMESPACE
 		[[nodiscard]] const_iterator begin() const noexcept
 		{
 #ifndef NDEBUG
-			return {Data, Data, Data + Size};
+			return {array, array, array + count};
 #else
 			return {Data};
 #endif
@@ -397,8 +366,8 @@ namespace ARRAY_NAMESPACE
 		[[nodiscard]] iterator end() noexcept
 		{
 #ifndef NDEBUG
-			pointer endPos {Data + Size};
-			return {endPos, Data, endPos};
+			pointer endPos {array + count};
+			return {endPos, array, endPos};
 #else
 			return {Data + Size};
 #endif
@@ -407,8 +376,8 @@ namespace ARRAY_NAMESPACE
 		[[nodiscard]] const_iterator end() const noexcept
 		{
 #ifndef NDEBUG
-			pointer endPos {Data + Size};
-			return {endPos, Data, endPos};
+			pointer endPos {array + count};
+			return {endPos, array, endPos};
 #else
 			return {Data + Size};
 #endif
@@ -455,7 +424,7 @@ namespace ARRAY_NAMESPACE
 		}
 
 	private:
-		size_type Size {};
-		pointer Data {};
+		size_type count {};
+		pointer array {};
 	};
 }
