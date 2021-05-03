@@ -204,47 +204,47 @@ namespace ARRAY_NAMESPACE
 
 			[[nodiscard]] reference operator*() const noexcept
 			{
-				return *Position;
+				return *pos;
 			}
 
 			[[nodiscard]] pointer operator->() const noexcept
 			{
-				return Position;
+				return pos;
 			}
 
 			template<typename U> [[nodiscard]] bool operator==(Iterator<U> other) const noexcept
 			{
-				return Position == other.Position;
+				return pos == other.pos;
 			}
 
 			template<typename U> [[nodiscard]] bool operator!=(Iterator<U> other) const noexcept
 			{
-				return Position != other.Position;
+				return pos != other.pos;
 			}
 
 			template<typename U> [[nodiscard]] bool operator>(Iterator<U> other) const noexcept
 			{
-				return Position > other.Position;
+				return pos > other.pos;
 			}
 
 			template<typename U> [[nodiscard]] bool operator>=(Iterator<U> other) const noexcept
 			{
-				return Position >= other.Position;
+				return pos >= other.pos;
 			}
 
 			template<typename U> [[nodiscard]] bool operator<(Iterator<U> other) const noexcept
 			{
-				return Position < other.Position;
+				return pos < other.pos;
 			}
 
 			template<typename U> [[nodiscard]] bool operator<=(Iterator<U> other) const noexcept
 			{
-				return Position <= other.Position;
+				return pos <= other.pos;
 			}
 
 			template<typename U> [[nodiscard]] auto operator<=>(Iterator<U> other) const noexcept
 			{
-				return Position <=> other.Position;
+				return pos <=> other.pos;
 			}
 
 			Iterator& operator++() noexcept
@@ -281,8 +281,8 @@ namespace ARRAY_NAMESPACE
 
 			[[nodiscard]] Iterator operator+(difference_type offset) const noexcept
 			{
-				auto copy {*this};
-				return copy += offset;
+				auto old {*this};
+				return old += offset;
 			}
 
 			friend [[nodiscard]] Iterator operator+(difference_type offset, Iterator iterator) noexcept
@@ -298,13 +298,13 @@ namespace ARRAY_NAMESPACE
 
 			[[nodiscard]] Iterator operator-(difference_type offset) const noexcept
 			{
-				auto copy {*this};
-				return copy -= offset;
+				auto old {*this};
+				return old -= offset;
 			}
 
 			template<typename U> [[nodiscard]] difference_type operator-(Iterator<U> other) const noexcept
 			{
-				return Position - other.Position;
+				return pos - other.pos;
 			}
 
 			[[nodiscard]] reference operator[](size_type index) const noexcept
@@ -313,29 +313,29 @@ namespace ARRAY_NAMESPACE
 			}
 
 		private:
-			pointer Position {};
+			pointer pos {};
 
 #ifndef NDEBUG
-			pointer Begin {};
-			pointer End {};
+			pointer begin {};
+			pointer end {};
 
-			Iterator(pointer pos, pointer begin, pointer end) noexcept : Position {pos}, Begin {begin}, End {end}
+			Iterator(pointer pos, pointer begin, pointer end) noexcept : pos {pos}, begin {begin}, end {end}
 			{}
 #else
-			Iterator(pointer pos) noexcept : Position {pos}
+			Iterator(pointer pos) noexcept : pos {pos}
 			{}
 #endif
 
 			void incrementPosition(difference_type offset) noexcept
 			{
-				assert(("Cannot increment iterator past end.", Position < End));
-				Position += offset;
+				assert(("Cannot increment iterator past end.", pos < end));
+				pos += offset;
 			}
 
 			void decrementPosition(difference_type offset) noexcept
 			{
-				assert(("Cannot decrement iterator before begin.", Begin < Position));
-				Position -= offset;
+				assert(("Cannot decrement iterator before begin.", begin < pos));
+				pos -= offset;
 			}
 		};
 
