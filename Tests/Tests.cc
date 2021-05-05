@@ -1,19 +1,25 @@
 #include <random>
 #include <string>
 
-#define ARRAY_NAMESPACE array
+#define ARRAY_NAMESPACE _
 #include "Include/Array.hh"
 
-using namespace array;
+using namespace _;
+
+#define check(condition)                                                                                               \
+	{                                                                                                                  \
+		if(!(condition))                                                                                               \
+			throw "Test failed.";                                                                                      \
+	}
 
 void testDefaultConstructor()
 {
 	Array<int> a;
 
 	for(int element : a)
-		assert(false); // Check that there are no elements.
+		check(false); // Check that there are no elements.
 
-	assert(a.data() == nullptr);
+	check(a.data() == nullptr);
 }
 
 void testConstructorFromRawArray()
@@ -22,8 +28,8 @@ void testConstructorFromRawArray()
 	auto raw {new int[testSize]};
 	Array<int> a {raw, testSize};
 
-	assert(a.size() == testSize);
-	assert(a.data() != nullptr);
+	check(a.size() == testSize);
+	check(a.data() != nullptr);
 	// raw array gets deleted here by array destructor
 }
 
@@ -33,7 +39,7 @@ void testConstructorWithInitialValue()
 
 	Array<std::string> a {30, initialValue};
 	for(auto& str : a)
-		assert(str == initialValue);
+		check(str == initialValue);
 }
 
 void testConstructorWithInitializerList()
@@ -43,18 +49,32 @@ void testConstructorWithInitializerList()
 
 	auto element {a.begin()};
 	for(int value : initializerList)
-		assert(*element++ == value);
+		check(*element++ == value);
+}
+
+void testConstructorWithInitializerListAndDefaultValue()
+{
+	const std::initializer_list<uint16_t> initializerList {3, 4, 5};
+	constexpr uint16_t defaultValue {100};
+	Array<uint16_t> a {25, initializerList, defaultValue};
+
+	auto element {a.begin()};
+	for(uint16_t value : initializerList)
+		check(*element++ == value);
+
+	for(size_t i {initializerList.size()}; i < a.size(); ++i)
+		check(a[i] == defaultValue);
 }
 
 void testCopyConstructor()
 {
 	Array<float> a {20, 6.66f};
 	auto b {a};
-	assert(a.size() == b.size());
+	check(a.size() == b.size());
 
 	auto elementA {a.begin()};
 	for(float elementB : b)
-		assert(elementB == *elementA++);
+		check(elementB == *elementA++);
 }
 
 void testMoveConstructor()
@@ -66,11 +86,11 @@ void testMoveConstructor()
 	auto dataPtr {a.data()};
 	auto b {std::move(a)};
 
-	assert(b.size() == testSize);
-	assert(b.data() == dataPtr);
-	assert(a.data() == nullptr);
+	check(b.size() == testSize);
+	check(b.data() == dataPtr);
+	check(a.data() == nullptr);
 	for(double element : b)
-		assert(element == initialValue);
+		check(element == initialValue);
 }
 
 void testCopyAssignment()
@@ -79,10 +99,10 @@ void testCopyAssignment()
 	Array<short> b {40, 512};
 	b = a;
 
-	assert(a.size() == b.size());
+	check(a.size() == b.size());
 	auto elementB {b.begin()};
 	for(short elementA : a)
-		assert(elementA == *elementB++);
+		check(elementA == *elementB++);
 }
 
 void testMoveAssignment()
@@ -95,10 +115,10 @@ void testMoveAssignment()
 	auto dataPtrA {a.data()};
 	b = std::move(a);
 
-	assert(b.size() == sizeA);
-	assert(b.data() == dataPtrA);
+	check(b.size() == sizeA);
+	check(b.data() == dataPtrA);
 	for(char element : b)
-		assert(element == initialValueA);
+		check(element == initialValueA);
 }
 
 void testSubscript()
@@ -115,9 +135,9 @@ void testSubscript()
 	a[indexB] = valueB;
 	a[indexC] = valueC;
 
-	assert(a[indexA] == valueA);
-	assert(a[indexB] == valueB);
-	assert(a[indexC] == valueC);
+	check(a[indexA] == valueA);
+	check(a[indexB] == valueB);
+	check(a[indexC] == valueC);
 }
 
 void testEquality()
@@ -130,76 +150,78 @@ void testEquality()
 	constexpr long long valueC {12236353338};
 
 	constexpr size_t size {5000};
-	Array<long long> a {size};
-	Array<long long> b {size};
+	Array<long long> a {size, 0};
+	Array<long long> b {size, 0};
 	a[indexA] = b[indexA] = valueA;
 	a[indexB] = b[indexB] = valueB;
 	a[indexC] = b[indexC] = valueC;
-	assert(a == b);
+	check(a == b);
 }
 
 void testInequality()
 {
 	Array<size_t> a {1};
 	Array<size_t> b {2};
-	assert(a != b);
+	check(a != b);
 
 	constexpr size_t size {5000};
 	Array<size_t> c {size, 0};
 	Array<size_t> d {size, 0};
-	assert(c == d);
+	check(c == d);
 
 	c[123] = 456;
-	assert(c != d);
+	check(c != d);
 }
 
 void testLessThan()
 {
 	Array<long double> a {30, {1.5, 2.5, 4.5}};
 	Array<long double> b {30, {1.5, 2.5, 5.5}};
-	assert(a < b);
+	check(a < b);
 }
 
 void testGreaterThan()
 {
 	Array<long double> a {30, {1.5, 2.5, 6.5}};
 	Array<long double> b {30, {1.5, 2.5, 5.5}};
-	assert(a > b);
+	check(a > b);
 }
 
 void testLessThanOrEqual()
 {
 	Array<long double> a {30, {1.5, 2.5, 5.5}};
 	Array<long double> b {30, {1.5, 2.5, 5.5}};
-	assert(a <= b);
+	check(a <= b);
 	Array<long double> c {30, {1.5, -3.5, 5.5}};
 	Array<long double> d {30, {1.5, 2.5, 5.5}};
-	assert(a <= b);
+	check(a <= b);
 }
 
 void testGreaterThanOrEqual()
 {
 	Array<long double> a {30, {1.5, 2.5, 5.5}};
 	Array<long double> b {30, {1.5, 2.5, 5.5}};
-	assert(a >= b);
+	check(a >= b);
 	Array<long double> c {30, {1.5, 2.5, 5.5}};
 	Array<long double> d {30, {1.5, 2.5, 8.5}};
-	assert(a >= b);
+	check(a >= b);
 }
 
 void testSpaceship()
 {
-	Array<int> a {10, {1, 2, 2}};
-	Array<int> b {10, {1, 2, 3}};
-	assert(a <=> b == std::strong_ordering::less);
+#ifdef __cpp_lib_three_way_comparison
+	Array<int> a {4, {1, 2, 2, 0}};
+	Array<int> b {4, {1, 2, 3, 0}};
+	check(a <=> b == std::strong_ordering::less);
 
-	Array<int> c {10, {1, 2, 3}};
-	Array<int> d {10, {1, 2, 3}};
-	assert(c <=> d == std::strong_ordering::equal);
+	Array<int> c {4, {1, 2, 3, 0}};
+	Array<int> d {4, {1, 2, 3, 0}};
+	check(c <=> d == std::strong_ordering::equal);
 
-	Array<int> e {10, {1, 2, 4}};
-	Array<int> f {10, {1, 2, 3}};
-	assert(e <=> f == std::strong_ordering::greater);
+	Array<int> e {4, {1, 2, 4, 0}};
+	Array<int> f {4, {1, 2, 3, 0}};
+	check(e <=> f == std::strong_ordering::greater);
+#endif
 }
 
 void testAt()
@@ -207,7 +229,7 @@ void testAt()
 	const Array<int> a {10};
 	try
 	{
-		assert(a.at(10) && false);
+		check(a.at(10) && false);
 	}
 	catch(std::out_of_range)
 	{}
@@ -217,28 +239,28 @@ void testFront()
 {
 	Array<int> a {10};
 	a.front() = 256;
-	assert(a.front() == 256);
-	assert(a[0] == 256);
+	check(a.front() == 256);
+	check(a[0] == 256);
 }
 
 void testBack()
 {
 	Array<int> a {10};
 	a.back() = 256;
-	assert(a.back() == 256);
-	assert(a[a.size() - 1] == 256);
+	check(a.back() == 256);
+	check(a[a.size() - 1] == 256);
 }
 
 void testEmpty()
 {
 	Array<int> a;
-	assert(a.empty());
+	check(a.empty());
 }
 
 void testMaxSize()
 {
 	Array<int> a;
-	assert(a.max_size());
+	check(a.max_size());
 }
 
 void testSwap()
@@ -250,12 +272,12 @@ void testSwap()
 	auto d {b};
 
 	a.swap(b);
-	assert(a == d);
-	assert(b == c);
+	check(a == d);
+	check(b == c);
 
 	swap(a, b);
-	assert(a == c);
-	assert(b == d);
+	check(a == c);
+	check(b == d);
 }
 
 void testFill()
@@ -263,7 +285,7 @@ void testFill()
 	constexpr int fillValue {244};
 	Array<int> a {10, fillValue};
 	for(int element : a)
-		assert(element == fillValue);
+		check(element == fillValue);
 }
 
 void testBeginAndEnd()
@@ -272,41 +294,51 @@ void testBeginAndEnd()
 	Array<short> a {size};
 
 	auto data {a.data()};
-	assert(data == a.begin().operator->());
-	assert(data + size == a.end().operator->());
+	check(data == a.begin().operator->());
+	check(data + size == a.end().operator->());
 }
 
 void testReverseBeginAndEnd()
 {
-	Array<short> a {3, {111, 222, 333}};
-	assert(*a.rbegin() == 333);
-	assert(*--a.rend() == 111);
+	const Array<short> a {3, {111, 222, 333}};
+	check(*a.rbegin() == 333);
+	check(*--a.rend() == 111);
+
+	Array<short> b {3, {444, 555, 666}};
+	check(*b.rbegin() == 666);
+	check(*--b.rend() == 444);
 }
 
 void testIteratorContiguousProperty()
 {
+#ifdef __cpp_lib_concepts
 	static_assert(std::contiguous_iterator<Array<float>::iterator>);
+#else
+	static_assert(std::is_same<std::iterator_traits<Array<float>::iterator>::iterator_category,
+							   std::random_access_iterator_tag>::value,
+				  "Iterator category not satisfied.");
+#endif
 }
 
 void testIteratorDefaultConstructor()
 {
 	Array<int> a {100};
 	Array<int>::iterator it;
-	assert(it.operator->() == nullptr);
+	check(it.operator->() == nullptr);
 }
 
 void testIteratorDereference()
 {
 	Array<std::string> a {25, {"AA", "BB", "CC"}};
 	auto first {a.begin()};
-	assert(*first == "AA");
+	check(*first == "AA");
 }
 
 void testIteratorArrow()
 {
 	Array<std::string> a {25, {"AAA", "BB", "C"}};
 	auto first {a.begin()};
-	assert(first->length() == 3);
+	check(first->length() == 3);
 }
 
 void testIteratorEquality()
@@ -316,8 +348,8 @@ void testIteratorEquality()
 	auto begin2 {a.cbegin()};
 	auto end1 {a.end()};
 	auto end2 {a.cend()};
-	assert(begin1 == begin2);
-	assert(end1 == end2);
+	check(begin1 == begin2);
+	check(end1 == end2);
 }
 
 void testIteratorInequality()
@@ -325,55 +357,57 @@ void testIteratorInequality()
 	Array<long> a {30};
 	auto getsIncremented {a.cbegin()};
 	auto getsDecremented {a.cend()};
-	assert(a.begin() != ++getsIncremented);
-	assert(a.end() != --getsDecremented);
+	check(a.begin() != ++getsIncremented);
+	check(a.end() != --getsDecremented);
 }
 
 void testIteratorLessThan()
 {
 	const Array<long> a {30};
 	auto getsIncremented {a.begin()};
-	assert(a.begin() < ++getsIncremented);
+	check(a.begin() < ++getsIncremented);
 }
 
 void testIteratorGreaterThan()
 {
 	Array<long> a {30};
 	auto getsIncremented {a.begin()};
-	assert(++getsIncremented > a.begin());
+	check(++getsIncremented > a.begin());
 }
 
 void testIteratorLessThanOrEqual()
 {
 	Array<long> a {30};
-	assert(a.begin() <= a.begin());
+	check(a.begin() <= a.begin());
 	auto getsIncremented {a.begin()};
-	assert(a.begin() <= ++getsIncremented);
+	check(a.begin() <= ++getsIncremented);
 }
 
 void testIteratorGreaterThanOrEqual()
 {
 	Array<long> a {30};
 	auto getsIncremented {a.begin()};
-	assert(a.begin() >= a.begin());
-	assert(++getsIncremented >= a.begin());
+	check(a.begin() >= a.begin());
+	check(++getsIncremented >= a.begin());
 }
 
 void testIteratorSpaceship()
 {
+#ifdef __cpp_lib_three_way_comparison
 	Array<long> a {30};
 	const auto secondElement {a.begin() + 1};
 	auto getsMutated {a.begin() + 2};
-	assert((getsMutated <=> secondElement) == std::strong_ordering::greater);
-	assert((--getsMutated <=> secondElement) == std::strong_ordering::equal);
-	assert((--getsMutated <=> secondElement) == std::strong_ordering::less);
+	check((getsMutated <=> secondElement) == std::strong_ordering::greater);
+	check((--getsMutated <=> secondElement) == std::strong_ordering::equal);
+	check((--getsMutated <=> secondElement) == std::strong_ordering::less);
+#endif
 }
 
 void testIteratorPreIncrement()
 {
 	Array<long> a {3, {5, 6, 7}};
 	auto getsIncremented {a.begin()};
-	assert(*++getsIncremented == 6);
+	check(*++getsIncremented == 6);
 }
 
 void testIteratorPostIncrement()
@@ -381,15 +415,15 @@ void testIteratorPostIncrement()
 	Array<long> a {3, {5, 6, 7}};
 	auto incremented {a.begin()};
 	auto first {incremented++};
-	assert(*first == 5);
-	assert(*incremented == 6);
+	check(*first == 5);
+	check(*incremented == 6);
 }
 
 void testIteratorPreDecrement()
 {
 	Array<long> a {3, {5, 6, 7}};
 	auto getsDecremented {a.end()};
-	assert(*--getsDecremented == 7);
+	check(*--getsDecremented == 7);
 }
 
 void testIteratorPostDecrement()
@@ -397,15 +431,15 @@ void testIteratorPostDecrement()
 	Array<long> a {3, {5, 6, 7}};
 	auto getsDecremented {a.end()};
 	auto end {getsDecremented--};
-	assert(end != getsDecremented);
+	check(end != getsDecremented);
 }
 
 void testIteratorAdditionAssignment()
 {
 	Array<int> a {5, {10, 11, 12}};
 	auto begin {a.begin()};
-	assert(*(begin += 2) == 12);
-	assert(*begin == 12);
+	check(*(begin += 2) == 12);
+	check(*begin == 12);
 }
 
 void testIteratorAddition()
@@ -413,16 +447,16 @@ void testIteratorAddition()
 	Array<int> a {5, {10, 11, 12}};
 	auto second {a.begin() + 1};
 	auto third {2 + a.begin()};
-	assert(*second == 11);
-	assert(*third == 12);
+	check(*second == 11);
+	check(*third == 12);
 }
 
 void testIteratorSubtractionAssignment()
 {
 	Array<int> a {3, {10, 11, 12}};
 	auto end {a.end()};
-	assert(*(end -= 2) == 11);
-	assert(*end == 11);
+	check(*(end -= 2) == 11);
+	check(*end == 11);
 }
 
 void testIteratorSubtraction()
@@ -430,15 +464,15 @@ void testIteratorSubtraction()
 	Array<int> a {3, {10, 11, 12}};
 	auto last {a.end() - 1};
 	auto offset {last - a.begin()};
-	assert(*last == 12);
-	assert(offset == a.size() - 1);
+	check(*last == 12);
+	check(offset == a.size() - 1);
 }
 
 void testIteratorSubscript()
 {
 	Array<int> a {6, {11, 12, 13, 14, 15, 16}};
 	auto it {a.begin() + 2};
-	assert(it[2] == 15);
+	check(it[2] == 15);
 }
 
 int main()
@@ -447,6 +481,7 @@ int main()
 	testConstructorFromRawArray();
 	testConstructorWithInitialValue();
 	testConstructorWithInitializerList();
+	testConstructorWithInitializerListAndDefaultValue();
 	testCopyConstructor();
 	testMoveConstructor();
 	testCopyAssignment();

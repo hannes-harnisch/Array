@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cassert>
 #include <iterator>
+#include <limits>
 #include <stdexcept>
 #include <utility>
 
@@ -36,6 +37,12 @@ namespace ARRAY_NAMESPACE
 		{
 			assert(("Size of initializer list exceeds array size.", count >= initialValues.size()));
 			std::copy_n(initialValues.begin(), initialValues.size(), array);
+		}
+
+		template<typename U, typename V>
+		Array(size_t count, std::initializer_list<U> initialValues, V&& defaultValue) : Array {count, initialValues}
+		{
+			std::fill(begin() + initialValues.size(), end(), std::forward<V>(defaultValue));
 		}
 
 		Array(const Array& other) : Array {other.count}
@@ -108,10 +115,12 @@ namespace ARRAY_NAMESPACE
 			return !operator<(other);
 		}
 
+#ifdef __cpp_lib_three_way_comparison
 		[[nodiscard]] auto operator<=>(const Array& other) const noexcept
 		{
 			return std::lexicographical_compare_three_way(begin(), end(), other.begin(), other.end());
 		}
+#endif
 
 		[[nodiscard]] T& at(size_t index)
 		{
@@ -194,11 +203,15 @@ namespace ARRAY_NAMESPACE
 			friend Array;
 
 		public:
-			using iterator_category = std::contiguous_iterator_tag;
-			using value_type		= V;
-			using difference_type	= std::ptrdiff_t;
-			using pointer			= V*;
-			using reference			= V&;
+#ifdef __cpp_lib_concepts
+			using iterator_concept = std::contiguous_iterator_tag;
+#else
+			using iterator_category = std::random_access_iterator_tag;
+#endif
+			using value_type	  = V;
+			using pointer		  = V*;
+			using reference		  = V&;
+			using difference_type = std::ptrdiff_t;
 
 			Iterator() noexcept = default;
 
@@ -242,10 +255,12 @@ namespace ARRAY_NAMESPACE
 				return pos <= other.pos;
 			}
 
+#ifdef __cpp_lib_three_way_comparison
 			template<typename U> [[nodiscard]] auto operator<=>(Iterator<U> other) const noexcept
 			{
 				return pos <=> other.pos;
 			}
+#endif
 
 			Iterator& operator++() noexcept
 			{
@@ -285,7 +300,7 @@ namespace ARRAY_NAMESPACE
 				return old += offset;
 			}
 
-			friend [[nodiscard]] Iterator operator+(ptrdiff_t offset, Iterator iterator) noexcept
+			[[nodiscard]] friend Iterator operator+(ptrdiff_t offset, Iterator iterator) noexcept
 			{
 				return iterator + offset;
 			}
