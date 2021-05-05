@@ -21,18 +21,18 @@ namespace ARRAY_NAMESPACE
 
 		Array() noexcept = default;
 
-		Array(value_type data[], size_type size) noexcept : count {size}, array {data}
+		Array(T data[], size_t count) noexcept : count {count}, array {data}
 		{}
 
-		Array(size_type size) : Array {new value_type[size], size}
+		Array(size_t count) : Array {new T[count], count}
 		{}
 
-		template<typename U> Array(size_type size, U&& initialValue) : Array {size}
+		template<typename U> Array(size_t count, U&& initialValue) : Array {count}
 		{
 			fill(std::forward<U>(initialValue));
 		}
 
-		template<typename U> Array(size_type size, std::initializer_list<U> initialValues) : Array {size}
+		template<typename U> Array(size_t count, std::initializer_list<U> initialValues) : Array {count}
 		{
 			assert(("Size of initializer list exceeds array size.", count >= initialValues.size()));
 			std::copy_n(initialValues.begin(), initialValues.size(), array);
@@ -59,13 +59,13 @@ namespace ARRAY_NAMESPACE
 			return *this;
 		}
 
-		[[nodiscard]] reference operator[](size_type index) noexcept
+		[[nodiscard]] T& operator[](size_t index) noexcept
 		{
 			assert(("Index into array was out of range.", index < count));
 			return array[index];
 		}
 
-		[[nodiscard]] const_reference operator[](size_type index) const noexcept
+		[[nodiscard]] const T& operator[](size_t index) const noexcept
 		{
 			assert(("Index into array was out of range.", index < count));
 			return array[index];
@@ -113,36 +113,36 @@ namespace ARRAY_NAMESPACE
 			return std::lexicographical_compare_three_way(begin(), end(), other.begin(), other.end());
 		}
 
-		[[nodiscard]] reference at(size_type index)
+		[[nodiscard]] T& at(size_t index)
 		{
 			if(index < count)
 				return array[index];
 			throw std::out_of_range("Index into array was out of range.");
 		}
 
-		[[nodiscard]] const_reference at(size_type index) const
+		[[nodiscard]] const T& at(size_t index) const
 		{
 			if(index < count)
 				return array[index];
 			throw std::out_of_range("Index into array was out of range.");
 		}
 
-		[[nodiscard]] reference front() noexcept
+		[[nodiscard]] T& front() noexcept
 		{
 			return array[0];
 		}
 
-		[[nodiscard]] const_reference front() const noexcept
+		[[nodiscard]] const T& front() const noexcept
 		{
 			return array[0];
 		}
 
-		[[nodiscard]] reference back() noexcept
+		[[nodiscard]] T& back() noexcept
 		{
 			return array[count - 1];
 		}
 
-		[[nodiscard]] const_reference back() const noexcept
+		[[nodiscard]] const T& back() const noexcept
 		{
 			return array[count - 1];
 		}
@@ -152,22 +152,22 @@ namespace ARRAY_NAMESPACE
 			return !count;
 		}
 
-		[[nodiscard]] size_type size() const noexcept
+		[[nodiscard]] size_t size() const noexcept
 		{
 			return count;
 		}
 
-		[[nodiscard]] constexpr size_type max_size() const noexcept
+		[[nodiscard]] constexpr size_t max_size() const noexcept
 		{
 			return std::numeric_limits<size_type>::max();
 		}
 
-		[[nodiscard]] pointer data() noexcept
+		[[nodiscard]] T* data() noexcept
 		{
 			return array;
 		}
 
-		[[nodiscard]] const_pointer data() const noexcept
+		[[nodiscard]] const T* data() const noexcept
 		{
 			return array;
 		}
@@ -189,25 +189,25 @@ namespace ARRAY_NAMESPACE
 		}
 
 	private:
-		template<typename QualifiedT> class Iterator
+		template<typename V> class Iterator
 		{
 			friend Array;
 
 		public:
 			using iterator_category = std::contiguous_iterator_tag;
-			using value_type		= QualifiedT;
-			using difference_type	= Array::difference_type;
-			using pointer			= QualifiedT*;
-			using reference			= QualifiedT&;
+			using value_type		= V;
+			using difference_type	= std::ptrdiff_t;
+			using pointer			= V*;
+			using reference			= V&;
 
 			Iterator() noexcept = default;
 
-			[[nodiscard]] reference operator*() const noexcept
+			[[nodiscard]] V& operator*() const noexcept
 			{
 				return *pos;
 			}
 
-			[[nodiscard]] pointer operator->() const noexcept
+			[[nodiscard]] V* operator->() const noexcept
 			{
 				return pos;
 			}
@@ -273,66 +273,66 @@ namespace ARRAY_NAMESPACE
 				return old;
 			}
 
-			Iterator& operator+=(difference_type offset) noexcept
+			Iterator& operator+=(ptrdiff_t offset) noexcept
 			{
 				incrementPosition(offset);
 				return *this;
 			}
 
-			[[nodiscard]] Iterator operator+(difference_type offset) const noexcept
+			[[nodiscard]] Iterator operator+(ptrdiff_t offset) const noexcept
 			{
 				auto old {*this};
 				return old += offset;
 			}
 
-			friend [[nodiscard]] Iterator operator+(difference_type offset, Iterator iterator) noexcept
+			friend [[nodiscard]] Iterator operator+(ptrdiff_t offset, Iterator iterator) noexcept
 			{
 				return iterator + offset;
 			}
 
-			Iterator& operator-=(difference_type offset) noexcept
+			Iterator& operator-=(ptrdiff_t offset) noexcept
 			{
 				decrementPosition(offset);
 				return *this;
 			}
 
-			[[nodiscard]] Iterator operator-(difference_type offset) const noexcept
+			[[nodiscard]] Iterator operator-(ptrdiff_t offset) const noexcept
 			{
 				auto old {*this};
 				return old -= offset;
 			}
 
-			template<typename U> [[nodiscard]] difference_type operator-(Iterator<U> other) const noexcept
+			template<typename U> [[nodiscard]] ptrdiff_t operator-(Iterator<U> other) const noexcept
 			{
 				return pos - other.pos;
 			}
 
-			[[nodiscard]] reference operator[](size_type index) const noexcept
+			[[nodiscard]] V& operator[](size_t index) const noexcept
 			{
 				return *(*this + index);
 			}
 
 		private:
-			pointer pos {};
+			V* pos {};
 
 #ifndef NDEBUG
-			pointer begin {};
-			pointer end {};
+			V* begin {};
+			V* end {};
 
-			Iterator(pointer pos, pointer begin, pointer end) noexcept : pos {pos}, begin {begin}, end {end}
+			Iterator(V* pos, V* begin, V* end) noexcept : pos {pos}, begin {begin}, end {end}
 			{}
 #else
-			Iterator(pointer pos) noexcept : pos {pos}
+			Iterator(V* pos) noexcept : pos {pos}
 			{}
 #endif
 
-			void incrementPosition(difference_type offset) noexcept
+			void incrementPosition(ptrdiff_t offset) noexcept
 			{
 				assert(("Cannot increment iterator past end.", pos < end));
 				pos += offset;
 			}
 
-			void decrementPosition(difference_type offset) noexcept
+			void decrementPosition(ptrdiff_t offset) noexcept
 			{
 				assert(("Cannot decrement iterator before begin.", begin < pos));
 				pos -= offset;
@@ -340,8 +340,8 @@ namespace ARRAY_NAMESPACE
 		};
 
 	public:
-		using iterator				 = Iterator<value_type>;
-		using const_iterator		 = Iterator<const value_type>;
+		using iterator				 = Iterator<T>;
+		using const_iterator		 = Iterator<const T>;
 		using reverse_iterator		 = std::reverse_iterator<iterator>;
 		using const_reverse_iterator = std::reverse_iterator<const_iterator>;
 
@@ -350,7 +350,7 @@ namespace ARRAY_NAMESPACE
 #ifndef NDEBUG
 			return {array, array, array + count};
 #else
-			return {Data};
+			return {array};
 #endif
 		}
 
@@ -359,27 +359,27 @@ namespace ARRAY_NAMESPACE
 #ifndef NDEBUG
 			return {array, array, array + count};
 #else
-			return {Data};
+			return {array};
 #endif
 		}
 
 		[[nodiscard]] iterator end() noexcept
 		{
 #ifndef NDEBUG
-			pointer endPos {array + count};
+			T* endPos {array + count};
 			return {endPos, array, endPos};
 #else
-			return {Data + Size};
+			return {array + count};
 #endif
 		}
 
 		[[nodiscard]] const_iterator end() const noexcept
 		{
 #ifndef NDEBUG
-			pointer endPos {array + count};
+			T* endPos {array + count};
 			return {endPos, array, endPos};
 #else
-			return {Data + Size};
+			return {array + count};
 #endif
 		}
 
@@ -424,7 +424,7 @@ namespace ARRAY_NAMESPACE
 		}
 
 	private:
-		size_type count {};
-		pointer array {};
+		size_t count {};
+		T* array {};
 	};
 }
