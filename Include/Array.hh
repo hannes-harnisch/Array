@@ -22,10 +22,10 @@ namespace ARRAY_NAMESPACE
 
 		Array() noexcept = default;
 
-		Array(T data[], size_t count) noexcept : count {count}, arr {data}
+		Array(T arr[], size_t count) noexcept : count {count}, arr {arr}
 		{}
 
-		Array(size_t count) : Array {new T[count], count}
+		Array(size_t count) : Array {allocate(count), count}
 		{}
 
 		template<typename U> Array(size_t count, U&& initialValue) : Array {count}
@@ -442,5 +442,13 @@ namespace ARRAY_NAMESPACE
 	private:
 		size_t count {};
 		T* arr {};
+
+		static T* allocate(size_t count)
+		{
+			if constexpr(std::is_default_constructible<T>::value)
+				return new T[count];
+
+			return static_cast<T*>(::operator new[](sizeof(T) * count));
+		}
 	};
 }

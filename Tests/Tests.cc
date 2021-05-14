@@ -33,6 +33,19 @@ void testConstructorFromRawArray()
 	// raw array gets deleted here by array destructor
 }
 
+void testConstructorWithNonDefaultConstructibleType()
+{
+	struct A
+	{
+		A(int)
+		{}
+	};
+	static_assert(!std::is_default_constructible_v<A>);
+
+	Array<A> a {5};
+	check(a.data());
+}
+
 void testConstructorWithInitialValue()
 {
 	constexpr auto initialValue {"STRING"};
@@ -479,6 +492,7 @@ int main()
 {
 	testDefaultConstructor();
 	testConstructorFromRawArray();
+	testConstructorWithNonDefaultConstructibleType();
 	testConstructorWithInitialValue();
 	testConstructorWithInitializerList();
 	testConstructorWithInitializerListAndDefaultValue();
