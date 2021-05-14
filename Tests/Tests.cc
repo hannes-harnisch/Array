@@ -175,35 +175,35 @@ void testInequality()
 
 void testLessThan()
 {
-	Array<long double> a {30, {1.5, 2.5, 4.5}};
-	Array<long double> b {30, {1.5, 2.5, 5.5}};
+	Array<long double> a {3, {1.5, 2.5, 4.5}};
+	Array<long double> b {3, {1.5, 2.5, 5.5}};
 	check(a < b);
 }
 
 void testGreaterThan()
 {
-	Array<long double> a {30, {1.5, 2.5, 6.5}};
-	Array<long double> b {30, {1.5, 2.5, 5.5}};
+	Array<long double> a {3, {1.5, 2.5, 6.5}};
+	Array<long double> b {3, {1.5, 2.5, 5.5}};
 	check(a > b);
 }
 
 void testLessThanOrEqual()
 {
-	Array<long double> a {30, {1.5, 2.5, 5.5}};
-	Array<long double> b {30, {1.5, 2.5, 5.5}};
+	Array<long double> a {3, {1.5, 2.5, 5.5}};
+	Array<long double> b {3, {1.5, 2.5, 5.5}};
 	check(a <= b);
-	Array<long double> c {30, {1.5, -3.5, 5.5}};
-	Array<long double> d {30, {1.5, 2.5, 5.5}};
+	Array<long double> c {3, {1.5, -3.5, 5.5}};
+	Array<long double> d {3, {1.5, 2.5, 5.5}};
 	check(a <= b);
 }
 
 void testGreaterThanOrEqual()
 {
-	Array<long double> a {30, {1.5, 2.5, 5.5}};
-	Array<long double> b {30, {1.5, 2.5, 5.5}};
+	Array<long double> a {3, {1.5, 2.5, 5.5}};
+	Array<long double> b {3, {1.5, 2.5, 5.5}};
 	check(a >= b);
-	Array<long double> c {30, {1.5, 2.5, 5.5}};
-	Array<long double> d {30, {1.5, 2.5, 8.5}};
+	Array<long double> c {3, {1.5, 2.5, 5.5}};
+	Array<long double> d {3, {1.5, 2.5, 8.5}};
 	check(a >= b);
 }
 

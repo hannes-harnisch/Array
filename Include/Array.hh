@@ -22,7 +22,7 @@ namespace ARRAY_NAMESPACE
 
 		Array() noexcept = default;
 
-		Array(T data[], size_t count) noexcept : count {count}, array {data}
+		Array(T data[], size_t count) noexcept : count {count}, arr {data}
 		{}
 
 		Array(size_t count) : Array {new T[count], count}
@@ -36,7 +36,7 @@ namespace ARRAY_NAMESPACE
 		template<typename U> Array(size_t count, std::initializer_list<U> initialValues) : Array {count}
 		{
 			assert(("Size of initializer list exceeds array size.", count >= initialValues.size()));
-			std::copy_n(initialValues.begin(), initialValues.size(), array);
+			std::copy_n(initialValues.begin(), initialValues.size(), arr);
 		}
 
 		template<typename U, typename V>
@@ -47,7 +47,7 @@ namespace ARRAY_NAMESPACE
 
 		Array(const Array& other) : Array {other.count}
 		{
-			std::copy_n(other.array, count, array);
+			std::copy_n(other.arr, count, arr);
 		}
 
 		Array(Array&& other) noexcept : Array {}
@@ -57,7 +57,7 @@ namespace ARRAY_NAMESPACE
 
 		~Array()
 		{
-			delete[] array;
+			delete[] arr;
 		}
 
 		Array& operator=(Array other) noexcept
@@ -69,19 +69,20 @@ namespace ARRAY_NAMESPACE
 		[[nodiscard]] T& operator[](size_t index) noexcept
 		{
 			assert(("Index into array was out of range.", index < count));
-			return array[index];
+			return arr[index];
 		}
 
 		[[nodiscard]] const T& operator[](size_t index) const noexcept
 		{
 			assert(("Index into array was out of range.", index < count));
-			return array[index];
+			return arr[index];
 		}
 
 		[[nodiscard]] bool operator==(const Array& other) const noexcept
 		{
 			if(count != other.count)
 				return false;
+
 			// std::equal not used here because of faulty MSVC implementation
 			auto otherElement {other.begin()};
 			for(auto&& element : *this)
@@ -125,35 +126,35 @@ namespace ARRAY_NAMESPACE
 		[[nodiscard]] T& at(size_t index)
 		{
 			if(index < count)
-				return array[index];
+				return arr[index];
 			throw std::out_of_range("Index into array was out of range.");
 		}
 
 		[[nodiscard]] const T& at(size_t index) const
 		{
 			if(index < count)
-				return array[index];
+				return arr[index];
 			throw std::out_of_range("Index into array was out of range.");
 		}
 
 		[[nodiscard]] T& front() noexcept
 		{
-			return array[0];
+			return arr[0];
 		}
 
 		[[nodiscard]] const T& front() const noexcept
 		{
-			return array[0];
+			return arr[0];
 		}
 
 		[[nodiscard]] T& back() noexcept
 		{
-			return array[count - 1];
+			return arr[count - 1];
 		}
 
 		[[nodiscard]] const T& back() const noexcept
 		{
-			return array[count - 1];
+			return arr[count - 1];
 		}
 
 		[[nodiscard]] bool empty() const noexcept
@@ -173,18 +174,18 @@ namespace ARRAY_NAMESPACE
 
 		[[nodiscard]] T* data() noexcept
 		{
-			return array;
+			return arr;
 		}
 
 		[[nodiscard]] const T* data() const noexcept
 		{
-			return array;
+			return arr;
 		}
 
 		void swap(Array& other) noexcept
 		{
 			std::swap(count, other.count);
-			std::swap(array, other.array);
+			std::swap(arr, other.arr);
 		}
 
 		friend void swap(Array& left, Array& right) noexcept
@@ -363,38 +364,38 @@ namespace ARRAY_NAMESPACE
 		[[nodiscard]] iterator begin() noexcept
 		{
 #ifndef NDEBUG
-			return {array, array, array + count};
+			return {arr, arr, arr + count};
 #else
-			return {array};
+			return {arr};
 #endif
 		}
 
 		[[nodiscard]] const_iterator begin() const noexcept
 		{
 #ifndef NDEBUG
-			return {array, array, array + count};
+			return {arr, arr, arr + count};
 #else
-			return {array};
+			return {arr};
 #endif
 		}
 
 		[[nodiscard]] iterator end() noexcept
 		{
 #ifndef NDEBUG
-			T* endPos {array + count};
-			return {endPos, array, endPos};
+			T* endPos {arr + count};
+			return {endPos, arr, endPos};
 #else
-			return {array + count};
+			return {arr + count};
 #endif
 		}
 
 		[[nodiscard]] const_iterator end() const noexcept
 		{
 #ifndef NDEBUG
-			T* endPos {array + count};
-			return {endPos, array, endPos};
+			T* endPos {arr + count};
+			return {endPos, arr, endPos};
 #else
-			return {array + count};
+			return {arr + count};
 #endif
 		}
 
@@ -440,6 +441,6 @@ namespace ARRAY_NAMESPACE
 
 	private:
 		size_t count {};
-		T* array {};
+		T* arr {};
 	};
 }
