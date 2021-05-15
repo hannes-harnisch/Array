@@ -443,9 +443,8 @@ namespace ARRAY_NAMESPACE
 		size_t count {};
 		T* arr {};
 
-		template<typename C> static std::true_type testForOperatorNew(decltype(&C::operator new[]));
-		template<typename C> static std::false_type testForOperatorNew(...);
-		static constexpr bool OverloadsOperatorNew = decltype(testForOperatorNew<T>(0))::value;
+		template<typename C> static std::true_type overloadsOperatorNew(decltype(&C::operator new[]));
+		template<typename C> static std::false_type overloadsOperatorNew(...);
 
 		static T* allocate(size_t count)
 		{
@@ -453,7 +452,7 @@ namespace ARRAY_NAMESPACE
 				return new T[count];
 
 			void* allocation;
-			if constexpr(OverloadsOperatorNew)
+			if constexpr(decltype(overloadsOperatorNew<T>(0))::value)
 				allocation = T::operator new[](sizeof(T) * count);
 			else
 				allocation = ::operator new[](sizeof(T) * count);
