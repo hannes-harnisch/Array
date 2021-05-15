@@ -443,12 +443,21 @@ namespace ARRAY_NAMESPACE
 		size_t count {};
 		T* arr {};
 
+		template<typename C> static std::true_type testForOperatorNew(decltype(&C::operator new[]));
+		template<typename C> static std::false_type testForOperatorNew(...);
+		static constexpr bool OverloadsOperatorNew = decltype(testForOperatorNew<T>(0))::value;
+
 		static T* allocate(size_t count)
 		{
-			if constexpr(std::is_default_constructible<T>::value)
+			if constexpr(std::is_default_constructible_v<T>)
 				return new T[count];
 
-			return static_cast<T*>(::operator new[](sizeof(T) * count));
+			void* allocation;
+			if constexpr(OverloadsOperatorNew)
+				allocation = T::operator new[](sizeof(T) * count);
+			else
+				allocation = ::operator new[](sizeof(T) * count);
+			return static_cast<T*>(allocation);
 		}
 	};
 }
