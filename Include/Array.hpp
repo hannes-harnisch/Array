@@ -22,35 +22,35 @@ namespace hh
 
 		Array() noexcept = default;
 
-		Array(T arr[], size_t count) noexcept : count {count}, arr {arr}
+		Array(T arr[], size_t count) noexcept : count(count), arr(arr)
 		{}
 
-		Array(size_t count) : Array {allocate(count), count}
+		Array(size_t count) : Array(allocate(count), count)
 		{}
 
-		template<typename U> Array(size_t count, U&& initialValue) : Array {count}
+		template<typename U> Array(size_t count, U&& initialValue) : Array(count)
 		{
 			fill(std::forward<U>(initialValue));
 		}
 
-		template<typename U> Array(size_t count, std::initializer_list<U> initialValues) : Array {count}
+		template<typename U> Array(size_t count, std::initializer_list<U> initialValues) : Array(count)
 		{
 			assert(("Size of initializer list exceeds array size.", count >= initialValues.size()));
 			std::copy_n(initialValues.begin(), initialValues.size(), arr);
 		}
 
 		template<typename U, typename V>
-		Array(size_t count, std::initializer_list<U> initialValues, V&& defaultValue) : Array {count, initialValues}
+		Array(size_t count, std::initializer_list<U> initialValues, V&& defaultValue) : Array(count, initialValues)
 		{
 			std::fill(begin() + initialValues.size(), end(), std::forward<V>(defaultValue));
 		}
 
-		Array(const Array& other) : Array {other.count}
+		Array(const Array& other) : Array(other.count)
 		{
 			std::copy_n(other.arr, count, arr);
 		}
 
-		Array(Array&& other) noexcept : Array {}
+		Array(Array&& other) noexcept : Array()
 		{
 			swap(other);
 		}
@@ -84,7 +84,7 @@ namespace hh
 				return false;
 
 			// std::equal not used here because of faulty MSVC implementation
-			auto otherElement {other.begin()};
+			auto otherElement = other.begin();
 			for(auto&& element : *this)
 				if(element != *otherElement++)
 					return false;
@@ -271,7 +271,7 @@ namespace hh
 
 			Iterator operator++(int) noexcept
 			{
-				auto old {*this};
+				auto old = *this;
 				incrementPosition(1);
 				return old;
 			}
@@ -284,7 +284,7 @@ namespace hh
 
 			Iterator operator--(int) noexcept
 			{
-				auto old {*this};
+				auto old = *this;
 				decrementPosition(1);
 				return old;
 			}
@@ -297,7 +297,7 @@ namespace hh
 
 			[[nodiscard]] Iterator operator+(ptrdiff_t offset) const noexcept
 			{
-				auto old {*this};
+				auto old = *this;
 				return old += offset;
 			}
 
@@ -314,7 +314,7 @@ namespace hh
 
 			[[nodiscard]] Iterator operator-(ptrdiff_t offset) const noexcept
 			{
-				auto old {*this};
+				auto old = *this;
 				return old -= offset;
 			}
 
@@ -335,10 +335,10 @@ namespace hh
 			V* begin {};
 			V* end {};
 
-			Iterator(V* pos, V* begin, V* end) noexcept : pos {pos}, begin {begin}, end {end}
+			Iterator(V* pos, V* begin, V* end) noexcept : pos(pos), begin(begin), end(end)
 			{}
 #else
-			Iterator(V* pos) noexcept : pos {pos}
+			Iterator(V* pos) noexcept : pos(pos)
 			{}
 #endif
 
@@ -382,7 +382,7 @@ namespace hh
 		[[nodiscard]] iterator end() noexcept
 		{
 #ifndef NDEBUG
-			T* endPos {arr + count};
+			T* endPos = arr + count;
 			return {endPos, arr, endPos};
 #else
 			return {arr + count};
@@ -392,7 +392,7 @@ namespace hh
 		[[nodiscard]] const_iterator end() const noexcept
 		{
 #ifndef NDEBUG
-			T* endPos {arr + count};
+			T* endPos = arr + count;
 			return {endPos, arr, endPos};
 #else
 			return {arr + count};
@@ -401,22 +401,22 @@ namespace hh
 
 		[[nodiscard]] reverse_iterator rbegin() noexcept
 		{
-			return reverse_iterator {end()};
+			return reverse_iterator(end());
 		}
 
 		[[nodiscard]] const_reverse_iterator rbegin() const noexcept
 		{
-			return const_reverse_iterator {end()};
+			return const_reverse_iterator(end());
 		}
 
 		[[nodiscard]] reverse_iterator rend() noexcept
 		{
-			return reverse_iterator {begin()};
+			return reverse_iterator(begin());
 		}
 
 		[[nodiscard]] const_reverse_iterator rend() const noexcept
 		{
-			return const_reverse_iterator {begin()};
+			return const_reverse_iterator(begin());
 		}
 
 		[[nodiscard]] const_iterator cbegin() const noexcept
