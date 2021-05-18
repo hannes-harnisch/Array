@@ -2,7 +2,7 @@ workspace "Array"
 	architecture		"x64"
 	configurations		{ "Debug", "Release" }
 	flags				{ "MultiProcessorCompile" }
-	startproject		"Array"
+	startproject		"Tests"
 
 outputdir = "%{cfg.buildcfg}_%{cfg.architecture}_%{cfg.system}"
 
@@ -14,7 +14,7 @@ project "Tests"
 	staticruntime		"On"
 	objdir				(".bin_int/" .. outputdir .. "/%{prj.name}")
 	targetdir			(".bin/"	 .. outputdir .. "/%{prj.name}")
-	files				{ "**.cc", "**.hh" }
+	files				{ "**.cpp", "**.hpp" }
 	includedirs			""
 
 	filter "configurations:Debug"

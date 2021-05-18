@@ -7,7 +7,7 @@
 #include <stdexcept>
 #include <utility>
 
-namespace ARRAY_NAMESPACE
+namespace hh
 {
 	template<typename T> class Array
 	{

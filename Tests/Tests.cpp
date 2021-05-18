@@ -1,10 +1,9 @@
 #include <random>
 #include <string>
 
-#define ARRAY_NAMESPACE _
-#include "Include/Array.hh"
+#include "Include/Array.hpp"
 
-using namespace _;
+using namespace hh;
 
 #define check(condition)                                                                                               \
 	{                                                                                                                  \
