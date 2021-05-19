@@ -15,7 +15,7 @@ void testDefaultConstructor()
 {
 	Array<int> a;
 
-	for(int element : a)
+	for([[maybe_unused]] int element : a)
 		check(false); // Check that there are no elements.
 
 	check(a.data() == nullptr);
@@ -56,7 +56,7 @@ void testConstructorWithInitialValue()
 
 void testConstructorWithInitializerList()
 {
-	const auto initializerList = {3, 4, 5};
+	const std::initializer_list<unsigned char> initializerList = {3, 4, 5};
 	Array<unsigned char> a(25, initializerList);
 
 	auto element = a.begin();
@@ -107,8 +107,8 @@ void testMoveConstructor()
 
 void testCopyAssignment()
 {
-	Array<short> a(20, 256);
-	Array<short> b(40, 512);
+	Array<short> a(20, (short)256);
+	Array<short> b(40, (short)512);
 	b = a;
 
 	check(a.size() == b.size());
@@ -312,11 +312,11 @@ void testBeginAndEnd()
 
 void testReverseBeginAndEnd()
 {
-	const Array<short> a(3, {111, 222, 333});
+	const Array<short> a(3, std::initializer_list<short> {111, 222, 333});
 	check(*a.rbegin() == 333);
 	check(*--a.rend() == 111);
 
-	Array<short> b(3, {444, 555, 666});
+	Array<short> b(3, std::initializer_list<short> {444, 555, 666});
 	check(*b.rbegin() == 666);
 	check(*--b.rend() == 444);
 }
@@ -477,7 +477,7 @@ void testIteratorSubtraction()
 	auto last	= a.end() - 1;
 	auto offset = last - a.begin();
 	check(*last == 12);
-	check(offset == a.size() - 1);
+	check(size_t(offset) == a.size() - 1);
 }
 
 void testIteratorSubscript()

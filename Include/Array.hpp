@@ -4,196 +4,224 @@
 #include <cassert>
 #include <iterator>
 #include <limits>
+#include <memory>
 #include <stdexcept>
+#include <type_traits>
 #include <utility>
 
 namespace hh
 {
-	template<typename T> class Array
+	template<typename T, typename Alloc = std::allocator<T>> class Array
 	{
+		using AllocTraits = std::allocator_traits<Alloc>;
+
 	public:
-		using value_type	  = T;
-		using reference		  = T&;
-		using const_reference = const T&;
-		using pointer		  = T*;
-		using const_pointer	  = const T*;
-		using difference_type = std::ptrdiff_t;
-		using size_type		  = std::size_t;
+		using value_type	  = typename AllocTraits::value_type;
+		using reference		  = value_type&;
+		using const_reference = const value_type&;
+		using pointer		  = typename AllocTraits::pointer;
+		using const_pointer	  = typename AllocTraits::const_pointer;
+		using size_type		  = typename AllocTraits::size_type;
+		using difference_type = typename AllocTraits::difference_type;
 
-		Array() noexcept = default;
+		constexpr Array() noexcept = default;
 
-		Array(T arr[], size_t count) noexcept : count(count), arr(arr)
+		constexpr Array(value_type arr[], size_type count) noexcept : arr(arr), count(count)
 		{}
 
-		Array(size_t count) : Array(allocate(count), count)
-		{}
-
-		template<typename U> Array(size_t count, U&& initialValue) : Array(count)
+		constexpr Array(size_type count) : Array(allocate(count), count)
 		{
-			fill(std::forward<U>(initialValue));
+			if constexpr(std::is_default_constructible_v<value_type>)
+			{
+				Alloc alloc;
+				for(auto& element : *this)
+					AllocTraits::construct(alloc, &element);
+			}
 		}
 
-		template<typename U> Array(size_t count, std::initializer_list<U> initialValues) : Array(count)
+		template<typename U> constexpr Array(size_type count, U&& initializer) : Array(allocate(count), count)
 		{
-			assert(("Size of initializer list exceeds array size.", count >= initialValues.size()));
-			std::copy_n(initialValues.begin(), initialValues.size(), arr);
+			Alloc alloc;
+			for(auto& element : *this)
+				AllocTraits::construct(alloc, &element, std::forward<U>(initializer));
+		}
+
+		template<typename U>
+		constexpr Array(size_type count, std::initializer_list<U> initializers) : Array(allocate(count), count)
+		{
+			assert(("Size of initializer list exceeds array size.", count >= initializers.size()));
+
+			Alloc alloc;
+			auto element = begin();
+			for(auto&& init : initializers)
+				AllocTraits::construct(alloc, &*element++, init);
+
+			if constexpr(std::is_default_constructible_v<value_type>)
+				for(auto rest = begin() + initializers.size(); rest != end(); ++rest)
+					AllocTraits::construct(alloc, &*rest);
 		}
 
 		template<typename U, typename V>
-		Array(size_t count, std::initializer_list<U> initialValues, V&& defaultValue) : Array(count, initialValues)
+		constexpr Array(size_type count, std::initializer_list<U> initializers, V&& fallback) : Array(count, initializers)
 		{
-			std::fill(begin() + initialValues.size(), end(), std::forward<V>(defaultValue));
+			Alloc alloc;
+			for(auto element = begin() + initializers.size(); element != end(); ++element)
+				AllocTraits::construct(alloc, &*element, std::forward<V>(fallback));
 		}
 
-		Array(const Array& other) : Array(other.count)
+		constexpr Array(const Array& that) : Array(allocate(that.count), that.count)
 		{
-			std::copy_n(other.arr, count, arr);
+			Alloc alloc;
+			auto other = that.begin();
+			for(auto& element : *this)
+				AllocTraits::construct(alloc, &element, *other++);
 		}
 
-		Array(Array&& other) noexcept : Array()
+		constexpr Array(Array&& that) noexcept : Array()
 		{
-			swap(other);
+			swap(that);
 		}
 
-		~Array()
+#ifdef __cpp_constexpr_dynamic_alloc
+		constexpr
+#endif
+			~Array()
 		{
-			delete[] arr;
+			Alloc alloc;
+
+			if constexpr(!std::is_trivially_destructible_v<value_type>)
+				for(auto& element : *this)
+					AllocTraits::destroy(alloc, &element);
+
+			AllocTraits::deallocate(alloc, arr, count);
 		}
 
-		Array& operator=(Array other) noexcept
+		constexpr Array& operator=(Array that) noexcept
 		{
-			swap(other);
+			swap(that);
 			return *this;
 		}
 
-		[[nodiscard]] T& operator[](size_t index) noexcept
+		[[nodiscard]] constexpr reference operator[](size_type index) noexcept
 		{
 			assert(("Index into array was out of range.", index < count));
 			return arr[index];
 		}
 
-		[[nodiscard]] const T& operator[](size_t index) const noexcept
+		[[nodiscard]] constexpr const_reference operator[](size_type index) const noexcept
 		{
 			assert(("Index into array was out of range.", index < count));
 			return arr[index];
 		}
 
-		[[nodiscard]] bool operator==(const Array& other) const noexcept
+		[[nodiscard]] constexpr bool operator==(const Array& that) const noexcept
 		{
-			if(count != other.count)
-				return false;
-
-			// std::equal not used here because of faulty MSVC implementation
-			auto otherElement = other.begin();
-			for(auto&& element : *this)
-				if(element != *otherElement++)
-					return false;
-			return true;
+			return count == that.count && std::equal(begin(), end(), that.begin());
 		}
 
-		[[nodiscard]] bool operator!=(const Array& other) const noexcept
+		[[nodiscard]] constexpr bool operator!=(const Array& that) const noexcept
 		{
-			return !operator==(other);
+			return !operator==(that);
 		}
 
-		[[nodiscard]] bool operator<(const Array& other) const noexcept
+		[[nodiscard]] constexpr bool operator<(const Array& that) const noexcept
 		{
-			return std::lexicographical_compare(begin(), end(), other.begin(), other.end());
+			return std::lexicographical_compare(begin(), end(), that.begin(), that.end());
 		}
 
-		[[nodiscard]] bool operator>(const Array& other) const noexcept
+		[[nodiscard]] constexpr bool operator>(const Array& that) const noexcept
 		{
-			return other < *this;
+			return that < *this;
 		}
 
-		[[nodiscard]] bool operator<=(const Array& other) const noexcept
+		[[nodiscard]] constexpr bool operator<=(const Array& that) const noexcept
 		{
-			return !operator>(other);
+			return !operator>(that);
 		}
 
-		[[nodiscard]] bool operator>=(const Array& other) const noexcept
+		[[nodiscard]] constexpr bool operator>=(const Array& that) const noexcept
 		{
-			return !operator<(other);
+			return !operator<(that);
 		}
 
 #ifdef __cpp_lib_three_way_comparison
-		[[nodiscard]] auto operator<=>(const Array& other) const noexcept
+		[[nodiscard]] constexpr auto operator<=>(const Array& that) const noexcept
 		{
-			return std::lexicographical_compare_three_way(begin(), end(), other.begin(), other.end());
+			return std::lexicographical_compare_three_way(begin(), end(), that.begin(), that.end());
 		}
 #endif
 
-		[[nodiscard]] T& at(size_t index)
+		[[nodiscard]] constexpr reference at(size_type index)
 		{
 			if(index < count)
 				return arr[index];
 			throw std::out_of_range("Index into array was out of range.");
 		}
 
-		[[nodiscard]] const T& at(size_t index) const
+		[[nodiscard]] constexpr const_reference at(size_type index) const
 		{
 			if(index < count)
 				return arr[index];
 			throw std::out_of_range("Index into array was out of range.");
 		}
 
-		[[nodiscard]] T& front() noexcept
+		[[nodiscard]] constexpr reference front() noexcept
 		{
 			return arr[0];
 		}
 
-		[[nodiscard]] const T& front() const noexcept
+		[[nodiscard]] constexpr const_reference front() const noexcept
 		{
 			return arr[0];
 		}
 
-		[[nodiscard]] T& back() noexcept
+		[[nodiscard]] constexpr reference back() noexcept
 		{
 			return arr[count - 1];
 		}
 
-		[[nodiscard]] const T& back() const noexcept
+		[[nodiscard]] constexpr const_reference back() const noexcept
 		{
 			return arr[count - 1];
 		}
 
-		[[nodiscard]] bool empty() const noexcept
+		[[nodiscard]] constexpr bool empty() const noexcept
 		{
 			return !count;
 		}
 
-		[[nodiscard]] size_t size() const noexcept
+		[[nodiscard]] constexpr size_type size() const noexcept
 		{
 			return count;
 		}
 
-		[[nodiscard]] constexpr size_t max_size() const noexcept
+		[[nodiscard]] static constexpr size_type max_size() noexcept
 		{
 			return std::numeric_limits<size_type>::max();
 		}
 
-		[[nodiscard]] T* data() noexcept
+		[[nodiscard]] constexpr pointer data() noexcept
 		{
 			return arr;
 		}
 
-		[[nodiscard]] const T* data() const noexcept
+		[[nodiscard]] constexpr const_pointer data() const noexcept
 		{
 			return arr;
 		}
 
-		void swap(Array& other) noexcept
+		constexpr void swap(Array& that) noexcept
 		{
-			std::swap(count, other.count);
-			std::swap(arr, other.arr);
+			std::swap(count, that.count);
+			std::swap(arr, that.arr);
 		}
 
-		friend void swap(Array& left, Array& right) noexcept
+		friend constexpr void swap(Array& left, Array& right) noexcept
 		{
 			left.swap(right);
 		}
 
-		template<typename U> void fill(U&& value) noexcept
+		template<typename U> constexpr void fill(U&& value) noexcept
 		{
 			std::fill(begin(), end(), std::forward<U>(value));
 		}
@@ -212,118 +240,118 @@ namespace hh
 			using value_type	  = V;
 			using pointer		  = V*;
 			using reference		  = V&;
-			using difference_type = std::ptrdiff_t;
+			using difference_type = typename AllocTraits::difference_type;
 
-			Iterator() noexcept = default;
+			constexpr Iterator() noexcept = default;
 
-			[[nodiscard]] V& operator*() const noexcept
+			[[nodiscard]] constexpr V& operator*() const noexcept
 			{
 				return *pos;
 			}
 
-			[[nodiscard]] V* operator->() const noexcept
+			[[nodiscard]] constexpr V* operator->() const noexcept
 			{
 				return pos;
 			}
 
-			template<typename U> [[nodiscard]] bool operator==(Iterator<U> other) const noexcept
+			template<typename U> [[nodiscard]] constexpr bool operator==(Iterator<U> that) const noexcept
 			{
-				return pos == other.pos;
+				return pos == that.pos;
 			}
 
-			template<typename U> [[nodiscard]] bool operator!=(Iterator<U> other) const noexcept
+			template<typename U> [[nodiscard]] constexpr bool operator!=(Iterator<U> that) const noexcept
 			{
-				return pos != other.pos;
+				return pos != that.pos;
 			}
 
-			template<typename U> [[nodiscard]] bool operator>(Iterator<U> other) const noexcept
+			template<typename U> [[nodiscard]] constexpr bool operator>(Iterator<U> that) const noexcept
 			{
-				return pos > other.pos;
+				return pos > that.pos;
 			}
 
-			template<typename U> [[nodiscard]] bool operator>=(Iterator<U> other) const noexcept
+			template<typename U> [[nodiscard]] constexpr bool operator>=(Iterator<U> that) const noexcept
 			{
-				return pos >= other.pos;
+				return pos >= that.pos;
 			}
 
-			template<typename U> [[nodiscard]] bool operator<(Iterator<U> other) const noexcept
+			template<typename U> [[nodiscard]] constexpr bool operator<(Iterator<U> that) const noexcept
 			{
-				return pos < other.pos;
+				return pos < that.pos;
 			}
 
-			template<typename U> [[nodiscard]] bool operator<=(Iterator<U> other) const noexcept
+			template<typename U> [[nodiscard]] constexpr bool operator<=(Iterator<U> that) const noexcept
 			{
-				return pos <= other.pos;
+				return pos <= that.pos;
 			}
 
 #ifdef __cpp_lib_three_way_comparison
-			template<typename U> [[nodiscard]] auto operator<=>(Iterator<U> other) const noexcept
+			template<typename U> [[nodiscard]] constexpr auto operator<=>(Iterator<U> that) const noexcept
 			{
-				return pos <=> other.pos;
+				return pos <=> that.pos;
 			}
 #endif
 
-			Iterator& operator++() noexcept
+			constexpr Iterator& operator++() noexcept
 			{
 				incrementPosition(1);
 				return *this;
 			}
 
-			Iterator operator++(int) noexcept
+			constexpr Iterator operator++(int) noexcept
 			{
 				auto old = *this;
 				incrementPosition(1);
 				return old;
 			}
 
-			Iterator& operator--() noexcept
+			constexpr Iterator& operator--() noexcept
 			{
 				decrementPosition(1);
 				return *this;
 			}
 
-			Iterator operator--(int) noexcept
+			constexpr Iterator operator--(int) noexcept
 			{
 				auto old = *this;
 				decrementPosition(1);
 				return old;
 			}
 
-			Iterator& operator+=(ptrdiff_t offset) noexcept
+			constexpr Iterator& operator+=(difference_type offset) noexcept
 			{
 				incrementPosition(offset);
 				return *this;
 			}
 
-			[[nodiscard]] Iterator operator+(ptrdiff_t offset) const noexcept
+			[[nodiscard]] constexpr Iterator operator+(difference_type offset) const noexcept
 			{
 				auto old = *this;
 				return old += offset;
 			}
 
-			[[nodiscard]] friend Iterator operator+(ptrdiff_t offset, Iterator iterator) noexcept
+			[[nodiscard]] friend constexpr Iterator operator+(difference_type offset, Iterator iterator) noexcept
 			{
 				return iterator + offset;
 			}
 
-			Iterator& operator-=(ptrdiff_t offset) noexcept
+			constexpr Iterator& operator-=(difference_type offset) noexcept
 			{
 				decrementPosition(offset);
 				return *this;
 			}
 
-			[[nodiscard]] Iterator operator-(ptrdiff_t offset) const noexcept
+			[[nodiscard]] constexpr Iterator operator-(difference_type offset) const noexcept
 			{
 				auto old = *this;
 				return old -= offset;
 			}
 
-			template<typename U> [[nodiscard]] ptrdiff_t operator-(Iterator<U> other) const noexcept
+			template<typename U> [[nodiscard]] constexpr difference_type operator-(Iterator<U> that) const noexcept
 			{
-				return pos - other.pos;
+				return pos - that.pos;
 			}
 
-			[[nodiscard]] V& operator[](size_t index) const noexcept
+			[[nodiscard]] constexpr V& operator[](size_type index) const noexcept
 			{
 				return *(*this + index);
 			}
@@ -335,20 +363,20 @@ namespace hh
 			V* begin {};
 			V* end {};
 
-			Iterator(V* pos, V* begin, V* end) noexcept : pos(pos), begin(begin), end(end)
+			constexpr Iterator(V* pos, V* begin, V* end) noexcept : pos(pos), begin(begin), end(end)
 			{}
 #else
-			Iterator(V* pos) noexcept : pos(pos)
+			constexpr Iterator(V* pos) noexcept : pos(pos)
 			{}
 #endif
 
-			void incrementPosition(ptrdiff_t offset) noexcept
+			constexpr void incrementPosition(difference_type offset) noexcept
 			{
 				assert(("Cannot increment iterator past end.", pos < end));
 				pos += offset;
 			}
 
-			void decrementPosition(ptrdiff_t offset) noexcept
+			constexpr void decrementPosition(difference_type offset) noexcept
 			{
 				assert(("Cannot decrement iterator before begin.", begin < pos));
 				pos -= offset;
@@ -356,12 +384,12 @@ namespace hh
 		};
 
 	public:
-		using iterator				 = Iterator<T>;
-		using const_iterator		 = Iterator<const T>;
+		using iterator				 = Iterator<value_type>;
+		using const_iterator		 = Iterator<const value_type>;
 		using reverse_iterator		 = std::reverse_iterator<iterator>;
 		using const_reverse_iterator = std::reverse_iterator<const_iterator>;
 
-		[[nodiscard]] iterator begin() noexcept
+		[[nodiscard]] constexpr iterator begin() noexcept
 		{
 #ifndef NDEBUG
 			return {arr, arr, arr + count};
@@ -370,7 +398,7 @@ namespace hh
 #endif
 		}
 
-		[[nodiscard]] const_iterator begin() const noexcept
+		[[nodiscard]] constexpr const_iterator begin() const noexcept
 		{
 #ifndef NDEBUG
 			return {arr, arr, arr + count};
@@ -379,84 +407,74 @@ namespace hh
 #endif
 		}
 
-		[[nodiscard]] iterator end() noexcept
+		[[nodiscard]] constexpr iterator end() noexcept
 		{
 #ifndef NDEBUG
-			T* endPos = arr + count;
+			pointer endPos = arr + count;
 			return {endPos, arr, endPos};
 #else
 			return {arr + count};
 #endif
 		}
 
-		[[nodiscard]] const_iterator end() const noexcept
+		[[nodiscard]] constexpr const_iterator end() const noexcept
 		{
 #ifndef NDEBUG
-			T* endPos = arr + count;
+			pointer endPos = arr + count;
 			return {endPos, arr, endPos};
 #else
 			return {arr + count};
 #endif
 		}
 
-		[[nodiscard]] reverse_iterator rbegin() noexcept
+		[[nodiscard]] constexpr reverse_iterator rbegin() noexcept
 		{
 			return reverse_iterator(end());
 		}
 
-		[[nodiscard]] const_reverse_iterator rbegin() const noexcept
+		[[nodiscard]] constexpr const_reverse_iterator rbegin() const noexcept
 		{
 			return const_reverse_iterator(end());
 		}
 
-		[[nodiscard]] reverse_iterator rend() noexcept
+		[[nodiscard]] constexpr reverse_iterator rend() noexcept
 		{
 			return reverse_iterator(begin());
 		}
 
-		[[nodiscard]] const_reverse_iterator rend() const noexcept
+		[[nodiscard]] constexpr const_reverse_iterator rend() const noexcept
 		{
 			return const_reverse_iterator(begin());
 		}
 
-		[[nodiscard]] const_iterator cbegin() const noexcept
+		[[nodiscard]] constexpr const_iterator cbegin() const noexcept
 		{
 			return begin();
 		}
 
-		[[nodiscard]] const_iterator cend() const noexcept
+		[[nodiscard]] constexpr const_iterator cend() const noexcept
 		{
 			return end();
 		}
 
-		[[nodiscard]] const_reverse_iterator crbegin() const noexcept
+		[[nodiscard]] constexpr const_reverse_iterator crbegin() const noexcept
 		{
 			return rbegin();
 		}
 
-		[[nodiscard]] const_reverse_iterator crend() const noexcept
+		[[nodiscard]] constexpr const_reverse_iterator crend() const noexcept
 		{
 			return rend();
 		}
 
 	private:
-		size_t count {};
-		T* arr {};
+		pointer arr {};
+		size_type count {};
 
-		template<typename C> static std::true_type overloadsOperatorNew(decltype(&C::operator new[]));
-		template<typename C> static std::false_type overloadsOperatorNew(...);
-
-		static T* allocate(size_t count)
+		static constexpr pointer allocate(size_type count)
 		{
-			if constexpr(std::is_default_constructible_v<T>)
-				return new T[count];
-
-			void* allocation;
-			if constexpr(decltype(overloadsOperatorNew<T>(0))::value)
-				allocation = T::operator new[](sizeof(T) * count);
-			else
-				allocation = ::operator new[](sizeof(T) * count);
-			return static_cast<T*>(allocation);
+			Alloc alloc;
+			return AllocTraits::allocate(alloc, count);
 		}
 	};
 }
