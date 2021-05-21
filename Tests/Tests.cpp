@@ -247,6 +247,12 @@ void testAt()
 	{}
 }
 
+void testGet()
+{
+	const Array<int> a(10);
+	check(a.get(10) == nullptr);
+}
+
 void testFront()
 {
 	Array<int> a(10);
@@ -275,6 +281,28 @@ void testMaxSize()
 	check(a.max_size());
 }
 
+void testRelease()
+{
+	Array<int> a(25);
+	auto ptr = a.release();
+	delete ptr;
+}
+
+void testReset()
+{
+	Array<long long> a(25);
+	a.reset();
+	check(a.data() == nullptr);
+}
+
+void testFill()
+{
+	constexpr int fillValue = 244;
+	Array<int> a(10, fillValue);
+	for(int element : a)
+		check(element == fillValue);
+}
+
 void testSwap()
 {
 	std::random_device random;
@@ -290,14 +318,6 @@ void testSwap()
 	swap(a, b);
 	check(a == c);
 	check(b == d);
-}
-
-void testFill()
-{
-	constexpr int fillValue = 244;
-	Array<int> a(10, fillValue);
-	for(int element : a)
-		check(element == fillValue);
 }
 
 void testBeginAndEnd()
@@ -508,12 +528,15 @@ int main()
 	testGreaterThanOrEqual();
 	testSpaceship();
 	testAt();
+	testGet();
 	testFront();
 	testBack();
 	testEmpty();
 	testMaxSize();
-	testSwap();
 	testFill();
+	testRelease();
+	testReset();
+	testSwap();
 	testBeginAndEnd();
 	testReverseBeginAndEnd();
 	testIteratorContiguousProperty();

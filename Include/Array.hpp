@@ -87,13 +87,7 @@ namespace hh
 #endif
 			~Array()
 		{
-			Alloc alloc;
-
-			if constexpr(!std::is_trivially_destructible_v<value_type>)
-				for(auto& element : *this)
-					AllocTraits::destroy(alloc, &element);
-
-			AllocTraits::deallocate(alloc, arr, count);
+			destroy();
 		}
 
 		constexpr Array& operator=(Array that) noexcept
@@ -155,14 +149,32 @@ namespace hh
 		{
 			if(index < count)
 				return arr[index];
-			throw std::out_of_range("Index into array was out of range.");
+			else
+				throw std::out_of_range("Index into array was out of range.");
 		}
 
 		[[nodiscard]] constexpr const_reference at(size_type index) const
 		{
 			if(index < count)
 				return arr[index];
-			throw std::out_of_range("Index into array was out of range.");
+			else
+				throw std::out_of_range("Index into array was out of range.");
+		}
+
+		[[nodiscard]] constexpr pointer get(size_t index) noexcept
+		{
+			if(index < count)
+				return arr + index;
+			else
+				return nullptr;
+		}
+
+		[[nodiscard]] constexpr const_pointer get(size_t index) const noexcept
+		{
+			if(index < count)
+				return arr + index;
+			else
+				return nullptr;
 		}
 
 		[[nodiscard]] constexpr reference front() noexcept
@@ -210,6 +222,22 @@ namespace hh
 			return arr;
 		}
 
+		template<typename U> constexpr void fill(U&& value) noexcept
+		{
+			std::fill(begin(), end(), std::forward<U>(value));
+		}
+
+		[[nodiscard]] constexpr pointer release() noexcept
+		{
+			return std::exchange(arr, nullptr);
+		}
+
+		constexpr void reset(pointer resetValue = pointer()) noexcept
+		{
+			destroy();
+			arr = resetValue;
+		}
+
 		constexpr void swap(Array& that) noexcept
 		{
 			std::swap(count, that.count);
@@ -219,11 +247,6 @@ namespace hh
 		friend constexpr void swap(Array& left, Array& right) noexcept
 		{
 			left.swap(right);
-		}
-
-		template<typename U> constexpr void fill(U&& value) noexcept
-		{
-			std::fill(begin(), end(), std::forward<U>(value));
 		}
 
 	private:
@@ -358,7 +381,6 @@ namespace hh
 
 		private:
 			V* pos {};
-
 #ifndef NDEBUG
 			V* begin {};
 			V* end {};
@@ -475,6 +497,17 @@ namespace hh
 		{
 			Alloc alloc;
 			return AllocTraits::allocate(alloc, count);
+		}
+
+		constexpr void destroy() noexcept
+		{
+			Alloc alloc;
+
+			if constexpr(!std::is_trivially_destructible_v<value_type>)
+				for(auto& element : *this)
+					AllocTraits::destroy(alloc, &element);
+
+			AllocTraits::deallocate(alloc, arr, count);
 		}
 	};
 }
