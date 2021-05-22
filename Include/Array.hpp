@@ -39,11 +39,11 @@ namespace hh
 			}
 		}
 
-		template<typename U> constexpr Array(size_type count, U&& initializer) : Array(allocate(count), count)
+		template<typename... Ts> constexpr Array(size_type count, Ts&&... ts) : Array(allocate(count), count)
 		{
 			Alloc alloc;
 			for(auto& element : *this)
-				AllocTraits::construct(alloc, &element, std::forward<U>(initializer));
+				AllocTraits::construct(alloc, &element, std::forward<Ts>(ts)...);
 		}
 
 		template<typename U>
@@ -87,7 +87,7 @@ namespace hh
 #endif
 			~Array()
 		{
-			destroy();
+			destruct();
 		}
 
 		constexpr Array& operator=(Array that) noexcept
@@ -161,7 +161,7 @@ namespace hh
 				throw std::out_of_range("Index into array was out of range.");
 		}
 
-		[[nodiscard]] constexpr pointer get(size_t index) noexcept
+		[[nodiscard]] constexpr pointer get(size_type index) noexcept
 		{
 			if(index < count)
 				return arr + index;
@@ -169,7 +169,7 @@ namespace hh
 				return nullptr;
 		}
 
-		[[nodiscard]] constexpr const_pointer get(size_t index) const noexcept
+		[[nodiscard]] constexpr const_pointer get(size_type index) const noexcept
 		{
 			if(index < count)
 				return arr + index;
@@ -229,12 +229,12 @@ namespace hh
 
 		[[nodiscard]] constexpr pointer release() noexcept
 		{
-			return std::exchange(arr, nullptr);
+			return std::exchange(arr, pointer());
 		}
 
 		constexpr void reset(pointer resetValue = pointer()) noexcept
 		{
-			destroy();
+			destruct();
 			arr = resetValue;
 		}
 
@@ -499,7 +499,7 @@ namespace hh
 			return AllocTraits::allocate(alloc, count);
 		}
 
-		constexpr void destroy() noexcept
+		constexpr void destruct() noexcept
 		{
 			Alloc alloc;
 

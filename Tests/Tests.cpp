@@ -47,11 +47,11 @@ void testConstructorWithNonDefaultConstructibleType()
 
 void testConstructorWithInitialValue()
 {
-	constexpr auto initialValue = "STRING";
+	constexpr char character = 'y';
 
-	Array<std::string> a(30, initialValue);
+	Array<std::string> a(30, 5, 'y');
 	for(auto& str : a)
-		check(str == initialValue);
+		check(str == "yyyyy");
 }
 
 void testConstructorWithInitializerList()
