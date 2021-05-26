@@ -1,4 +1,5 @@
-#pragma once
+#ifndef HH_ARRAY
+#define HH_ARRAY
 
 #include <algorithm>
 #include <cassert>
@@ -10,10 +11,10 @@
 #include <utility>
 
 namespace hh
-{
-	template<typename T, typename Alloc = std::allocator<T>> class Array
+{	
+	template<typename T, typename Allocator = std::allocator<T>> class Array
 	{
-		using AllocTraits = std::allocator_traits<Alloc>;
+		using AllocTraits = std::allocator_traits<Allocator>;
 
 	public:
 		using value_type	  = typename AllocTraits::value_type;
@@ -33,7 +34,7 @@ namespace hh
 		{
 			if constexpr(std::is_default_constructible_v<value_type>)
 			{
-				Alloc alloc;
+				Allocator alloc;
 				for(auto& element : *this)
 					AllocTraits::construct(alloc, &element);
 			}
@@ -41,7 +42,7 @@ namespace hh
 
 		template<typename... Ts> constexpr Array(size_type count, Ts&&... ts) : Array(allocate(count), count)
 		{
-			Alloc alloc;
+			Allocator alloc;
 			for(auto& element : *this)
 				AllocTraits::construct(alloc, &element, std::forward<Ts>(ts)...);
 		}
@@ -51,7 +52,7 @@ namespace hh
 		{
 			assert(("Size of initializer list exceeds array size.", count >= initializers.size()));
 
-			Alloc alloc;
+			Allocator alloc;
 			auto element = begin();
 			for(auto&& init : initializers)
 				AllocTraits::construct(alloc, &*element++, init);
@@ -64,14 +65,14 @@ namespace hh
 		template<typename U, typename V>
 		constexpr Array(size_type count, std::initializer_list<U> initializers, V&& fallback) : Array(count, initializers)
 		{
-			Alloc alloc;
+			Allocator alloc;
 			for(auto element = begin() + initializers.size(); element != end(); ++element)
 				AllocTraits::construct(alloc, &*element, std::forward<V>(fallback));
 		}
 
 		constexpr Array(const Array& that) : Array(allocate(that.count), that.count)
 		{
-			Alloc alloc;
+			Allocator alloc;
 			auto other = that.begin();
 			for(auto& element : *this)
 				AllocTraits::construct(alloc, &element, *other++);
@@ -495,13 +496,13 @@ namespace hh
 
 		static constexpr pointer allocate(size_type count)
 		{
-			Alloc alloc;
+			Allocator alloc;
 			return AllocTraits::allocate(alloc, count);
 		}
 
 		constexpr void destruct() noexcept
 		{
-			Alloc alloc;
+			Allocator alloc;
 
 			if constexpr(!std::is_trivially_destructible_v<value_type>)
 				for(auto& element : *this)
@@ -511,3 +512,5 @@ namespace hh
 		}
 	};
 }
+
+#endif /* HH_ARRAY */
