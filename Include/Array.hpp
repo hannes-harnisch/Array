@@ -15,7 +15,7 @@
 #endif
 
 namespace hh
-{	
+{
 	template<typename T, typename Allocator = std::allocator<T>> class Array
 	{
 		using AllocTraits = std::allocator_traits<Allocator>;
@@ -113,38 +113,38 @@ namespace hh
 			return arr[index];
 		}
 
-		[[nodiscard]] constexpr bool operator==(const Array& that) const noexcept
+		[[nodiscard]] constexpr bool operator==(const auto& that) const noexcept
 		{
 			return count == that.count && std::equal(begin(), end(), that.begin());
 		}
 
-		[[nodiscard]] constexpr bool operator!=(const Array& that) const noexcept
+		[[nodiscard]] constexpr bool operator!=(const auto& that) const noexcept
 		{
 			return !operator==(that);
 		}
 
-		[[nodiscard]] constexpr bool operator<(const Array& that) const noexcept
+		[[nodiscard]] constexpr bool operator<(const auto& that) const noexcept
 		{
 			return std::lexicographical_compare(begin(), end(), that.begin(), that.end());
 		}
 
-		[[nodiscard]] constexpr bool operator>(const Array& that) const noexcept
+		[[nodiscard]] constexpr bool operator>(const auto& that) const noexcept
 		{
 			return that < *this;
 		}
 
-		[[nodiscard]] constexpr bool operator<=(const Array& that) const noexcept
+		[[nodiscard]] constexpr bool operator<=(const auto& that) const noexcept
 		{
 			return !operator>(that);
 		}
 
-		[[nodiscard]] constexpr bool operator>=(const Array& that) const noexcept
+		[[nodiscard]] constexpr bool operator>=(const auto& that) const noexcept
 		{
 			return !operator<(that);
 		}
 
 #ifdef __cpp_lib_three_way_comparison
-		[[nodiscard]] constexpr auto operator<=>(const Array& that) const noexcept
+		[[nodiscard]] constexpr auto operator<=>(const auto& that) const noexcept
 		{
 			return std::lexicographical_compare_three_way(begin(), end(), that.begin(), that.end());
 		}

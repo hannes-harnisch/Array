@@ -1,6 +1,9 @@
+#define _CRTDBG_MAP_ALLOC
 #include "Include/Array.hpp"
 
+#include <crtdbg.h>
 #include <random>
+#include <stdlib.h>
 #include <string>
 
 using namespace hh;
@@ -29,7 +32,7 @@ void testConstructorFromRawArray()
 
 	check(a.size() == testSize);
 	check(a.data() != nullptr);
-	// raw array gets deleted here by array destructor
+	// raw gets destroyed here automatically
 }
 
 void testConstructorWithNonDefaultConstructibleType()
@@ -561,4 +564,5 @@ int main()
 	testIteratorSubscript();
 
 	std::printf("All tests passed.\n");
+	_CrtDumpMemoryLeaks();
 }
