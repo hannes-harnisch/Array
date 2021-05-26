@@ -2,13 +2,17 @@
 #define HH_ARRAY
 
 #include <algorithm>
-#include <cassert>
 #include <iterator>
 #include <limits>
 #include <memory>
 #include <stdexcept>
 #include <type_traits>
 #include <utility>
+
+#ifndef HH_ASSERT
+	#include <cassert>
+	#define HH_ASSERT(condition, message) assert((message, condition))
+#endif
 
 namespace hh
 {	
@@ -50,7 +54,7 @@ namespace hh
 		template<typename U>
 		constexpr Array(size_type count, std::initializer_list<U> initializers) : Array(allocate(count), count)
 		{
-			assert(("Size of initializer list exceeds array size.", count >= initializers.size()));
+			HH_ASSERT(count >= initializers.size(), "Size of initializer list exceeds array size.");
 
 			Allocator alloc;
 			auto element = begin();
@@ -99,13 +103,13 @@ namespace hh
 
 		[[nodiscard]] constexpr reference operator[](size_type index) noexcept
 		{
-			assert(("Index into array was out of range.", index < count));
+			HH_ASSERT(index < count, "Index into array was out of range.");
 			return arr[index];
 		}
 
 		[[nodiscard]] constexpr const_reference operator[](size_type index) const noexcept
 		{
-			assert(("Index into array was out of range.", index < count));
+			HH_ASSERT(index < count, "Index into array was out of range.");
 			return arr[index];
 		}
 
@@ -167,7 +171,7 @@ namespace hh
 			if(index < count)
 				return arr + index;
 			else
-				return nullptr;
+				return pointer();
 		}
 
 		[[nodiscard]] constexpr const_pointer get(size_type index) const noexcept
@@ -175,7 +179,7 @@ namespace hh
 			if(index < count)
 				return arr + index;
 			else
-				return nullptr;
+				return const_pointer();
 		}
 
 		[[nodiscard]] constexpr reference front() noexcept
@@ -395,13 +399,13 @@ namespace hh
 
 			constexpr void incrementPosition(difference_type offset) noexcept
 			{
-				assert(("Cannot increment iterator past end.", pos < end));
+				HH_ASSERT(pos < end, "Cannot increment array iterator past end.");
 				pos += offset;
 			}
 
 			constexpr void decrementPosition(difference_type offset) noexcept
 			{
-				assert(("Cannot decrement iterator before begin.", begin < pos));
+				HH_ASSERT(begin < pos, "Cannot decrement array iterator before begin.");
 				pos -= offset;
 			}
 		};

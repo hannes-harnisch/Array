@@ -7,12 +7,14 @@ A single-header implementation of a fixed-size heap-allocated array with a stand
 * A familiar interface similar to standard containers and of course full iterator support along with some neat extras.
 * Custom allocator support like all standard containers.
 * The same high level of memory safety as standard containers as well as strong exception safety guarantees.
-* Asserts when accessing the array out of bounds in debug builds. Allows using custom assertions.
+* Asserts in debug builds when indexing out of bounds.
+* Allows using custom assertions.
 * Absolutely no spillage of implementation details.
 * Allowing easy modification of class and method names as well as the namespace to fit your codebase's naming convention.
 * Minimal memory overhead, achieved through two ways:
   * Having only 2 word-sized members as compared to ``std::vector``'s 3 word-sized members (in typical standard library implementations).
   * Using ``std::allocator``, which typically just uses ``new``. This elides some overhead associated with ``new[]``, which has to keep track of the allocated size at the start of the allocated block in most implementations.
+* Providing an alternate allocator for types that correctly overload ``new[]``/``delete[]`` or ``new``/``delete``. (Coming soon!)
 
 # Interface
 
