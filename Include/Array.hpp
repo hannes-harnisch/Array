@@ -115,7 +115,7 @@ namespace hh
 
 		[[nodiscard]] constexpr bool operator==(const auto& that) const noexcept
 		{
-			return count == that.count && std::equal(begin(), end(), that.begin());
+			return size() == that.size() && std::equal(begin(), end(), that.begin());
 		}
 
 		[[nodiscard]] constexpr bool operator!=(const auto& that) const noexcept
