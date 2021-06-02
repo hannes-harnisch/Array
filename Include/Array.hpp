@@ -115,7 +115,7 @@ namespace hh
 
 		[[nodiscard]] constexpr bool operator==(const auto& that) const noexcept
 		{
-			return size() == that.size() && std::equal(begin(), end(), that.begin());
+			return size() == std::size(that) && std::equal(begin(), end(), std::begin(that));
 		}
 
 		[[nodiscard]] constexpr bool operator!=(const auto& that) const noexcept
@@ -125,7 +125,7 @@ namespace hh
 
 		[[nodiscard]] constexpr bool operator<(const auto& that) const noexcept
 		{
-			return std::lexicographical_compare(begin(), end(), that.begin(), that.end());
+			return std::lexicographical_compare(begin(), end(), std::begin(that), std::end(that));
 		}
 
 		[[nodiscard]] constexpr bool operator>(const auto& that) const noexcept
@@ -146,7 +146,7 @@ namespace hh
 #ifdef __cpp_lib_three_way_comparison
 		[[nodiscard]] constexpr auto operator<=>(const auto& that) const noexcept
 		{
-			return std::lexicographical_compare_three_way(begin(), end(), that.begin(), that.end());
+			return std::lexicographical_compare_three_way(begin(), end(), std::begin(that), std::end(that));
 		}
 #endif
 
