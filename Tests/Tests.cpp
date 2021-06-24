@@ -24,17 +24,6 @@ void testDefaultConstructor()
 	check(a.data() == nullptr);
 }
 
-void testConstructorFromRawArray()
-{
-	constexpr size_t testSize = 30;
-	auto raw				  = new int[testSize];
-	Array<int> a(raw, testSize);
-
-	check(a.size() == testSize);
-	check(a.data() != nullptr);
-	// raw gets destroyed here automatically
-}
-
 void testConstructorWithNonDefaultConstructibleType()
 {
 	struct A
@@ -55,11 +44,15 @@ void testConstructorWithInitialValue()
 	Array<std::string> a(30, 5, 'y');
 	for(auto& str : a)
 		check(str == "yyyyy");
+
+	Array<std::string> b(30, std::string("DONTMOVEINALOOP"));
+	for(auto& str : b)
+		check(str == "DONTMOVEINALOOP");
 }
 
 void testConstructorWithInitializerList()
 {
-	const std::initializer_list<unsigned char> initializerList = {3, 4, 5};
+	std::initializer_list<unsigned char> const initializerList = {3, 4, 5};
 	Array<unsigned char> a(25, initializerList);
 
 	auto element = a.begin();
@@ -69,7 +62,7 @@ void testConstructorWithInitializerList()
 
 void testConstructorWithInitializerListAndDefaultValue()
 {
-	const std::initializer_list<uint16_t> initializerList {3, 4, 5};
+	std::initializer_list<uint16_t> const initializerList {3, 4, 5};
 	constexpr uint16_t defaultValue = 100;
 	Array<uint16_t> a(25, initializerList, defaultValue);
 
@@ -241,7 +234,7 @@ void testSpaceship()
 
 void testAt()
 {
-	const Array<int> a(10);
+	Array<int> const a(10);
 	try
 	{
 		check(a.at(10) && false);
@@ -252,7 +245,7 @@ void testAt()
 
 void testGet()
 {
-	const Array<int> a(10);
+	Array<int> const a(10);
 	check(a.get(10) == nullptr);
 }
 
@@ -288,6 +281,7 @@ void testRelease()
 {
 	Array<int> a(25);
 	auto ptr = a.release();
+	check(a.data() == nullptr);
 	delete ptr;
 }
 
@@ -335,7 +329,7 @@ void testBeginAndEnd()
 
 void testReverseBeginAndEnd()
 {
-	const Array<short> a(3, std::initializer_list<short> {111, 222, 333});
+	Array<short> const a(3, std::initializer_list<short> {111, 222, 333});
 	check(*a.rbegin() == 333);
 	check(*--a.rend() == 111);
 
@@ -398,7 +392,7 @@ void testIteratorInequality()
 
 void testIteratorLessThan()
 {
-	const Array<long> a(30);
+	Array<long> const a(30);
 	auto getsIncremented = a.begin();
 	check(a.begin() < ++getsIncremented);
 }
@@ -430,7 +424,7 @@ void testIteratorSpaceship()
 {
 #ifdef __cpp_lib_three_way_comparison
 	Array<long> a(30);
-	const auto secondElement = a.begin() + 1;
+	auto const secondElement = a.begin() + 1;
 	auto getsMutated		 = a.begin() + 2;
 	check((getsMutated <=> secondElement) == std::strong_ordering::greater);
 	check((--getsMutated <=> secondElement) == std::strong_ordering::equal);
@@ -513,7 +507,6 @@ void testIteratorSubscript()
 int main()
 {
 	testDefaultConstructor();
-	testConstructorFromRawArray();
 	testConstructorWithNonDefaultConstructibleType();
 	testConstructorWithInitialValue();
 	testConstructorWithInitializerList();

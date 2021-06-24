@@ -31,10 +31,7 @@ namespace hh
 
 		constexpr Array() noexcept = default;
 
-		constexpr Array(pointer const arr, size_type const count) noexcept : arr(arr), count(count)
-		{}
-
-		constexpr Array(size_type const count) : Array(allocate(count), count)
+		constexpr Array(size_type const count) : arr(allocate(count)), count(count)
 		{
 			if constexpr(std::is_default_constructible_v<value_type>)
 			{
@@ -44,22 +41,22 @@ namespace hh
 			}
 		}
 
-		template<typename... Ts> constexpr Array(size_type const count, Ts&&... ts) : Array(allocate(count), count)
+		template<typename... Ts> constexpr Array(size_type const count, Ts&&... ts) : arr(allocate(count)), count(count)
 		{
 			Allocator alloc;
 			for(auto& element : *this)
-				AllocTraits::construct(alloc, &element, std::forward<Ts>(ts)...);
+				AllocTraits::construct(alloc, &element, ts...);
 		}
 
 		template<typename U>
-		constexpr Array(size_type const count, std::initializer_list<U> initializers) : Array(allocate(count), count)
+		constexpr Array(size_type const count, std::initializer_list<U> initializers) : arr(allocate(count)), count(count)
 		{
 			HH_ASSERT(count >= initializers.size(), "Size of initializer list exceeds array size.");
 
 			Allocator alloc;
 			auto element = begin();
 			for(auto&& init : initializers)
-				AllocTraits::construct(alloc, &*element++, init);
+				AllocTraits::construct(alloc, &*element++, std::move(init));
 
 			if constexpr(std::is_default_constructible_v<value_type>)
 				for(auto rest = begin() + initializers.size(); rest != end(); ++rest)
@@ -71,10 +68,10 @@ namespace hh
 		{
 			Allocator alloc;
 			for(auto element = begin() + initializers.size(); element != end(); ++element)
-				AllocTraits::construct(alloc, &*element, std::forward<V>(fallback));
+				AllocTraits::construct(alloc, &*element, fallback);
 		}
 
-		constexpr Array(Array const& that) : Array(allocate(that.count), that.count)
+		constexpr Array(Array const& that) : arr(allocate(that.count)), count(that.count)
 		{
 			Allocator alloc;
 			auto other = that.begin();
@@ -154,32 +151,32 @@ namespace hh
 		{
 			if(index < count)
 				return arr[index];
-			else
-				throw std::out_of_range("Index into array was out of range.");
+
+			throw std::out_of_range("Index into array was out of range.");
 		}
 
 		[[nodiscard]] constexpr const_reference at(size_type const index) const
 		{
 			if(index < count)
 				return arr[index];
-			else
-				throw std::out_of_range("Index into array was out of range.");
+
+			throw std::out_of_range("Index into array was out of range.");
 		}
 
 		[[nodiscard]] constexpr pointer get(size_type const index) noexcept
 		{
 			if(index < count)
 				return arr + index;
-			else
-				return pointer();
+
+			return {};
 		}
 
 		[[nodiscard]] constexpr const_pointer get(size_type const index) const noexcept
 		{
 			if(index < count)
 				return arr + index;
-			else
-				return const_pointer();
+
+			return {};
 		}
 
 		[[nodiscard]] constexpr reference front() noexcept
@@ -229,15 +226,15 @@ namespace hh
 
 		template<typename U> constexpr void fill(U&& value) noexcept
 		{
-			std::fill(begin(), end(), std::forward<U>(value));
+			std::fill(begin(), end(), value);
 		}
 
 		[[nodiscard]] constexpr pointer release() noexcept
 		{
-			return std::exchange(arr, pointer());
+			return std::exchange(arr, {});
 		}
 
-		constexpr void reset(pointer const resetValue = pointer()) noexcept
+		constexpr void reset(pointer const resetValue = {}) noexcept
 		{
 			destruct();
 			arr = resetValue;
