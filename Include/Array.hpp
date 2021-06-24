@@ -110,32 +110,32 @@ namespace hh
 			return arr[index];
 		}
 
-		[[nodiscard]] constexpr bool operator==(auto const& that) const noexcept
+		template<typename C> [[nodiscard]] constexpr bool operator==(C const& that) const noexcept
 		{
 			return size() == std::size(that) && std::equal(begin(), end(), std::begin(that));
 		}
 
-		[[nodiscard]] constexpr bool operator!=(auto const& that) const noexcept
+		template<typename C> [[nodiscard]] constexpr bool operator!=(C const& that) const noexcept
 		{
 			return !operator==(that);
 		}
 
-		[[nodiscard]] constexpr bool operator<(auto const& that) const noexcept
+		template<typename C> [[nodiscard]] constexpr bool operator<(C const& that) const noexcept
 		{
 			return std::lexicographical_compare(begin(), end(), std::begin(that), std::end(that));
 		}
 
-		[[nodiscard]] constexpr bool operator>(auto const& that) const noexcept
+		template<typename C> [[nodiscard]] constexpr bool operator>(C const& that) const noexcept
 		{
 			return that < *this;
 		}
 
-		[[nodiscard]] constexpr bool operator<=(auto const& that) const noexcept
+		template<typename C> [[nodiscard]] constexpr bool operator<=(C const& that) const noexcept
 		{
 			return !operator>(that);
 		}
 
-		[[nodiscard]] constexpr bool operator>=(auto const& that) const noexcept
+		template<typename C> [[nodiscard]] constexpr bool operator>=(C const& that) const noexcept
 		{
 			return !operator<(that);
 		}

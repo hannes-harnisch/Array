@@ -103,8 +103,8 @@ void testMoveConstructor()
 
 void testCopyAssignment()
 {
-	Array<short> a(20, (short)256);
-	Array<short> b(40, (short)512);
+	Array<short> a(20, static_cast<short>(256));
+	Array<short> b(40, static_cast<short>(512));
 	b = a;
 
 	check(a.size() == b.size());
