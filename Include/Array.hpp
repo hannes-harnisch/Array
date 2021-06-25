@@ -16,7 +16,7 @@
 
 namespace hh
 {
-	template<typename T, typename Allocator = std::allocator<T>> class Array
+	template<typename T, typename Allocator = std::allocator<T>> class [[nodiscard]] Array
 	{
 		using AllocTraits = std::allocator_traits<Allocator>;
 
@@ -252,7 +252,7 @@ namespace hh
 		}
 
 	private:
-		template<typename V> class Iterator
+		template<typename V> class [[nodiscard]] Iterator
 		{
 			friend Array;
 
