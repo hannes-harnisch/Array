@@ -181,21 +181,25 @@ namespace hh
 
 		[[nodiscard]] constexpr reference front() noexcept
 		{
+			HH_ASSERT(count, "Tried to access element of empty array.");
 			return arr[0];
 		}
 
 		[[nodiscard]] constexpr const_reference front() const noexcept
 		{
+			HH_ASSERT(count, "Tried to access element of empty array.");
 			return arr[0];
 		}
 
 		[[nodiscard]] constexpr reference back() noexcept
 		{
+			HH_ASSERT(count, "Tried to access element of empty array.");
 			return arr[count - 1];
 		}
 
 		[[nodiscard]] constexpr const_reference back() const noexcept
 		{
+			HH_ASSERT(count, "Tried to access element of empty array.");
 			return arr[count - 1];
 		}
 
