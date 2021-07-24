@@ -79,10 +79,8 @@ namespace hh
 				AllocTraits::construct(alloc, &element, *other++);
 		}
 
-		constexpr Array(Array&& that) noexcept
-		{
-			swap(that);
-		}
+		constexpr Array(Array&& that) noexcept : arr(that.release()), count(that.count)
+		{}
 
 #ifdef __cpp_constexpr_dynamic_alloc
 		constexpr
