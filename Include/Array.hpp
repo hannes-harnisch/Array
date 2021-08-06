@@ -44,13 +44,13 @@ namespace hh
 
 			constexpr operator Iterator<V const>() const noexcept
 			{
-				return {{
+				return
+				{
 					pos,
 #if DEBUG
-					begin,
-					end,
+						begin, end,
 #endif
-				}};
+				};
 			}
 
 			constexpr V& operator*() const noexcept

@@ -1,30 +1,25 @@
 #define _CRTDBG_MAP_ALLOC
-#include "Include/Array.hpp"
+#include "../Include/Array.hpp"
 
-#include <crtdbg.h>
 #include <random>
-#include <stdlib.h>
 #include <string>
+
+#define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
+#include <doctest/doctest.h>
 
 using namespace hh;
 
-#define check(condition)                                                                                                       \
-	{                                                                                                                          \
-		if(!(condition))                                                                                                       \
-			throw "Test failed.";                                                                                              \
-	}
-
-void testDefaultConstructor()
+TEST_CASE("DefaultConstructor")
 {
 	Array<int> a;
 
 	for([[maybe_unused]] int element : a)
-		check(false); // Check that there are no elements.
+		CHECK(false); // Check that there are no elements.
 
-	check(a.data() == nullptr);
+	CHECK(a.data() == nullptr);
 }
 
-void testConstructorWithNonDefaultConstructibleType()
+TEST_CASE("ConstructorWithNonDefaultConstructibleType")
 {
 	struct A
 	{
@@ -34,33 +29,33 @@ void testConstructorWithNonDefaultConstructibleType()
 	static_assert(!std::is_default_constructible_v<A>);
 
 	Array<A> a(5);
-	check(a.data());
+	CHECK(a.data());
 }
 
-void testConstructorWithInitialValue()
+TEST_CASE("ConstructorWithInitialValue")
 {
 	constexpr char character = 'y';
 
 	Array<std::string> a(30, 5, 'y');
 	for(auto& str : a)
-		check(str == "yyyyy");
+		CHECK(str == "yyyyy");
 
 	Array<std::string> b(30, std::string("DONTMOVEINALOOP"));
 	for(auto& str : b)
-		check(str == "DONTMOVEINALOOP");
+		CHECK(str == "DONTMOVEINALOOP");
 }
 
-void testConstructorWithInitializerList()
+TEST_CASE("ConstructorWithInitializerList")
 {
 	std::initializer_list<unsigned char> const initializerList = {3, 4, 5};
 	Array<unsigned char>					   a(25, initializerList);
 
 	auto element = a.begin();
 	for(int value : initializerList)
-		check(*element++ == value);
+		CHECK(*element++ == value);
 }
 
-void testConstructorWithInitializerListAndDefaultValue()
+TEST_CASE("ConstructorWithInitializerListAndDefaultValue")
 {
 	std::initializer_list<uint16_t> const initializerList {3, 4, 5};
 	constexpr uint16_t					  defaultValue = 100;
@@ -68,24 +63,24 @@ void testConstructorWithInitializerListAndDefaultValue()
 
 	auto element = a.begin();
 	for(uint16_t value : initializerList)
-		check(*element++ == value);
+		CHECK(*element++ == value);
 
 	for(size_t i = initializerList.size(); i < a.size(); ++i)
-		check(a[i] == defaultValue);
+		CHECK(a[i] == defaultValue);
 }
 
-void testCopyConstructor()
+TEST_CASE("CopyConstructor")
 {
 	Array<float> a(20, 6.66f);
 	auto		 b(a);
-	check(a.size() == b.size());
+	CHECK(a.size() == b.size());
 
 	auto elementA = a.begin();
 	for(float elementB : b)
-		check(elementB == *elementA++);
+		CHECK(elementB == *elementA++);
 }
 
-void testMoveConstructor()
+TEST_CASE("MoveConstructor")
 {
 	constexpr size_t testSize	  = 50;
 	constexpr double initialValue = 1.25;
@@ -94,26 +89,26 @@ void testMoveConstructor()
 	auto		  dataPtr = a.data();
 	auto		  b		  = std::move(a);
 
-	check(b.size() == testSize);
-	check(b.data() == dataPtr);
-	check(a.data() == nullptr);
+	CHECK(b.size() == testSize);
+	CHECK(b.data() == dataPtr);
+	CHECK(a.data() == nullptr);
 	for(double element : b)
-		check(element == initialValue);
+		CHECK(element == initialValue);
 }
 
-void testCopyAssignment()
+TEST_CASE("CopyAssignment")
 {
 	Array<short> a(20, static_cast<short>(256));
 	Array<short> b(40, static_cast<short>(512));
 	b = a;
 
-	check(a.size() == b.size());
+	CHECK(a.size() == b.size());
 	auto elementB = b.begin();
 	for(short elementA : a)
-		check(elementA == *elementB++);
+		CHECK(elementA == *elementB++);
 }
 
-void testMoveAssignment()
+TEST_CASE("MoveAssignment")
 {
 	constexpr size_t sizeA		   = 58;
 	constexpr char	 initialValueA = 'x';
@@ -123,13 +118,13 @@ void testMoveAssignment()
 	auto		dataPtrA = a.data();
 	b					 = std::move(a);
 
-	check(b.size() == sizeA);
-	check(b.data() == dataPtrA);
+	CHECK(b.size() == sizeA);
+	CHECK(b.data() == dataPtrA);
 	for(char element : b)
-		check(element == initialValueA);
+		CHECK(element == initialValueA);
 }
 
-void testSubscript()
+TEST_CASE("Subscript")
 {
 	constexpr size_t   indexA = 1234;
 	constexpr size_t   indexB = 5678;
@@ -143,12 +138,12 @@ void testSubscript()
 	a[indexB] = valueB;
 	a[indexC] = valueC;
 
-	check(a[indexA] == valueA);
-	check(a[indexB] == valueB);
-	check(a[indexC] == valueC);
+	CHECK(a[indexA] == valueA);
+	CHECK(a[indexB] == valueB);
+	CHECK(a[indexC] == valueC);
 }
 
-void testEquality()
+TEST_CASE("Equality")
 {
 	constexpr size_t	indexA = 33;
 	constexpr size_t	indexB = 333;
@@ -163,144 +158,151 @@ void testEquality()
 	a[indexA] = b[indexA] = valueA;
 	a[indexB] = b[indexB] = valueB;
 	a[indexC] = b[indexC] = valueC;
-	check(a == b);
+	CHECK(a == b);
 }
 
-void testInequality()
+TEST_CASE("Inequality")
 {
 	Array<size_t> a(1);
 	Array<size_t> b(2);
-	check(a != b);
+	CHECK(a != b);
 
 	constexpr size_t size = 5000;
 	Array<size_t>	 c(size, 0);
 	Array<size_t>	 d(size, 0);
-	check(c == d);
+	CHECK(c == d);
 
 	c[123] = 456;
-	check(c != d);
+	CHECK(c != d);
 }
 
-void testLessThan()
+TEST_CASE("LessThan")
 {
 	Array<long double> a(3, {1.5, 2.5, 4.5});
 	Array<long double> b(3, {1.5, 2.5, 5.5});
-	check(a < b);
+	CHECK(a < b);
 }
 
-void testGreaterThan()
+TEST_CASE("GreaterThan")
 {
 	Array<long double> a(3, {1.5, 2.5, 6.5});
 	Array<long double> b(3, {1.5, 2.5, 5.5});
-	check(a > b);
+	CHECK(a > b);
 }
 
-void testLessThanOrEqual()
+TEST_CASE("LessThanOrEqual")
 {
 	Array<long double> a(3, {1.5, 2.5, 5.5});
 	Array<long double> b(3, {1.5, 2.5, 5.5});
-	check(a <= b);
+	CHECK(a <= b);
 	Array<long double> c(3, {1.5, -3.5, 5.5});
 	Array<long double> d(3, {1.5, 2.5, 5.5});
-	check(a <= b);
+	CHECK(a <= b);
 }
 
-void testGreaterThanOrEqual()
+TEST_CASE("GreaterThanOrEqual")
 {
 	Array<long double> a(3, {1.5, 2.5, 5.5});
 	Array<long double> b(3, {1.5, 2.5, 5.5});
-	check(a >= b);
+	CHECK(a >= b);
 	Array<long double> c(3, {1.5, 2.5, 5.5});
 	Array<long double> d(3, {1.5, 2.5, 8.5});
-	check(a >= b);
+	CHECK(a >= b);
 }
 
-void testSpaceship()
+TEST_CASE("Spaceship")
 {
 #ifdef __cpp_lib_three_way_comparison
 	Array<int> a(4, {1, 2, 2, 0});
 	Array<int> b(4, {1, 2, 3, 0});
-	check(a <=> b == std::strong_ordering::less);
+
+	auto comp = a <=> b;
+	CHECK(comp == std::strong_ordering::less);
 
 	Array<int> c(4, {1, 2, 3, 0});
 	Array<int> d(4, {1, 2, 3, 0});
-	check(c <=> d == std::strong_ordering::equal);
+	comp = c <=> d;
+	CHECK(comp == std::strong_ordering::equal);
 
 	Array<int> e(4, {1, 2, 4, 0});
 	Array<int> f(4, {1, 2, 3, 0});
-	check(e <=> f == std::strong_ordering::greater);
+	comp = e <=> f;
+	CHECK(comp == std::strong_ordering::greater);
 #endif
 }
 
-void testAt()
+TEST_CASE("At")
 {
 	Array<int> const a(10);
 	try
 	{
-		check(a.at(10) && false);
+		a.at(10);
+		CHECK(false);
 	}
 	catch(std::out_of_range)
-	{}
+	{
+		CHECK(true);
+	}
 }
 
-void testGet()
+TEST_CASE("Get")
 {
 	Array<int> const a(10);
-	check(a.get(10) == nullptr);
+	CHECK(a.get(10) == nullptr);
 }
 
-void testFront()
+TEST_CASE("Front")
 {
 	Array<int> a(10);
 	a.front() = 256;
-	check(a.front() == 256);
-	check(a[0] == 256);
+	CHECK(a.front() == 256);
+	CHECK(a[0] == 256);
 }
 
-void testBack()
+TEST_CASE("Back")
 {
 	Array<int> a(10);
 	a.back() = 256;
-	check(a.back() == 256);
-	check(a[a.size() - 1] == 256);
+	CHECK(a.back() == 256);
+	CHECK(a[a.size() - 1] == 256);
 }
 
-void testEmpty()
+TEST_CASE("Empty")
 {
 	Array<int> a;
-	check(a.empty());
+	CHECK(a.empty());
 }
 
-void testMaxSize()
+TEST_CASE("MaxSize")
 {
 	Array<int> a;
-	check(a.max_size());
+	CHECK(a.max_size());
 }
 
-void testRelease()
+TEST_CASE("Release")
 {
 	Array<int> a(25);
 	auto	   ptr = a.release();
-	check(a.data() == nullptr);
+	CHECK(a.data() == nullptr);
 	delete ptr;
 }
 
-void testReset()
+TEST_CASE("Reset")
 {
 	Array<long long> a(25);
 	a.reset();
-	check(a.data() == nullptr);
+	CHECK(a.data() == nullptr);
 }
 
-void testFill()
+TEST_CASE("Fill")
 {
 	constexpr int fillValue = 244;
 	Array<int>	  a(10, fillValue);
 	for(int element : a)
-		check(element == fillValue);
+		CHECK(element == fillValue);
 }
 
-void testSwap()
+TEST_CASE("Swap")
 {
 	std::random_device random;
 	Array<unsigned>	   a(5, {random(), random(), random()});
@@ -309,36 +311,36 @@ void testSwap()
 	auto			   d(b);
 
 	a.swap(b);
-	check(a == d);
-	check(b == c);
+	CHECK(a == d);
+	CHECK(b == c);
 
 	swap(a, b);
-	check(a == c);
-	check(b == d);
+	CHECK(a == c);
+	CHECK(b == d);
 }
 
-void testBeginAndEnd()
+TEST_CASE("BeginAndEnd")
 {
 	constexpr size_t size = 25;
 	Array<short>	 a(size);
 
 	auto data = a.data();
-	check(data == a.begin().operator->());
-	check(data + size == a.end().operator->());
+	CHECK(data == a.begin().operator->());
+	CHECK(data + size == a.end().operator->());
 }
 
-void testReverseBeginAndEnd()
+TEST_CASE("ReverseBeginAndEnd")
 {
 	Array<short> const a(3, std::initializer_list<short> {111, 222, 333});
-	check(*a.rbegin() == 333);
-	check(*--a.rend() == 111);
+	CHECK(*a.rbegin() == 333);
+	CHECK(*--a.rend() == 111);
 
 	Array<short> b(3, std::initializer_list<short> {444, 555, 666});
-	check(*b.rbegin() == 666);
-	check(*--b.rend() == 444);
+	CHECK(*b.rbegin() == 666);
+	CHECK(*--b.rend() == 444);
 }
 
-void testIteratorContiguousProperty()
+TEST_CASE("IteratorContiguousProperty")
 {
 #ifdef __cpp_lib_concepts
 	static_assert(std::contiguous_iterator<Array<float>::iterator>);
@@ -349,213 +351,157 @@ void testIteratorContiguousProperty()
 #endif
 }
 
-void testIteratorDefaultConstructor()
+TEST_CASE("IteratorDefaultConstructor")
 {
 	Array<int>			 a(100);
 	Array<int>::iterator it;
-	check(true);
+	CHECK(true);
 }
 
-void testIteratorDereference()
+TEST_CASE("IteratorDereference")
 {
 	Array<std::string> a(25, {"AA", "BB", "CC"});
 	auto			   first = a.begin();
-	check(*first == "AA");
+	CHECK(*first == "AA");
 }
 
-void testIteratorArrow()
+TEST_CASE("IteratorArrow")
 {
 	Array<std::string> a(25, {"AAA", "BB", "C"});
 	auto			   first = a.begin();
-	check(first->length() == 3);
+	CHECK(first->length() == 3);
 }
 
-void testIteratorEquality()
+TEST_CASE("IteratorEquality")
 {
 	Array<long> a(30);
 	auto		begin1 = a.begin();
 	auto		begin2 = a.cbegin();
 	auto		end1   = a.end();
 	auto		end2   = a.cend();
-	check(begin1 == begin2);
-	check(end1 == end2);
+	CHECK(begin1 == begin2);
+	CHECK(end1 == end2);
 }
 
-void testIteratorInequality()
+TEST_CASE("IteratorInequality")
 {
 	Array<long> a(30);
 	auto		getsIncremented = a.cbegin();
 	auto		getsDecremented = a.cend();
-	check(a.begin() != ++getsIncremented);
-	check(a.end() != --getsDecremented);
+	CHECK(a.begin() != ++getsIncremented);
+	CHECK(a.end() != --getsDecremented);
 }
 
-void testIteratorLessThan()
+TEST_CASE("IteratorLessThan")
 {
 	Array<long> const a(30);
 	auto			  getsIncremented = a.begin();
-	check(a.begin() < ++getsIncremented);
+	CHECK(a.begin() < ++getsIncremented);
 }
 
-void testIteratorGreaterThan()
+TEST_CASE("IteratorGreaterThan")
 {
 	Array<long> a(30);
 	auto		getsIncremented = a.begin();
-	check(++getsIncremented > a.begin());
+	CHECK(++getsIncremented > a.begin());
 }
 
-void testIteratorLessThanOrEqual()
+TEST_CASE("IteratorLessThanOrEqual")
 {
 	Array<long> a(30);
-	check(a.begin() <= a.begin());
+	CHECK(a.begin() <= a.begin());
 	auto getsIncremented = a.begin();
-	check(a.begin() <= ++getsIncremented);
+	CHECK(a.begin() <= ++getsIncremented);
 }
 
-void testIteratorGreaterThanOrEqual()
+TEST_CASE("IteratorGreaterThanOrEqual")
 {
 	Array<long> a(30);
 	auto		getsIncremented = a.begin();
-	check(a.begin() >= a.begin());
-	check(++getsIncremented >= a.begin());
+	CHECK(a.begin() >= a.begin());
+	CHECK(++getsIncremented >= a.begin());
 }
 
-void testIteratorSpaceship()
+TEST_CASE("IteratorSpaceship")
 {
 #ifdef __cpp_lib_three_way_comparison
 	Array<long> a(30);
 	auto const	secondElement = a.begin() + 1;
 	auto		getsMutated	  = a.begin() + 2;
-	check((getsMutated <=> secondElement) == std::strong_ordering::greater);
-	check((--getsMutated <=> secondElement) == std::strong_ordering::equal);
-	check((--getsMutated <=> secondElement) == std::strong_ordering::less);
+	CHECK((getsMutated <=> secondElement) == std::strong_ordering::greater);
+	CHECK((--getsMutated <=> secondElement) == std::strong_ordering::equal);
+	CHECK((--getsMutated <=> secondElement) == std::strong_ordering::less);
 #endif
 }
 
-void testIteratorPreIncrement()
+TEST_CASE("IteratorPreIncrement")
 {
 	Array<long> a(3, {5, 6, 7});
 	auto		getsIncremented = a.begin();
-	check(*++getsIncremented == 6);
+	CHECK(*++getsIncremented == 6);
 }
 
-void testIteratorPostIncrement()
+TEST_CASE("IteratorPostIncrement")
 {
 	Array<long> a(3, {5, 6, 7});
 	auto		incremented = a.begin();
 	auto		first		= incremented++;
-	check(*first == 5);
-	check(*incremented == 6);
+	CHECK(*first == 5);
+	CHECK(*incremented == 6);
 }
 
-void testIteratorPreDecrement()
+TEST_CASE("IteratorPreDecrement")
 {
 	Array<long> a(3, {5, 6, 7});
 	auto		getsDecremented = a.end();
-	check(*--getsDecremented == 7);
+	CHECK(*--getsDecremented == 7);
 }
 
-void testIteratorPostDecrement()
+TEST_CASE("IteratorPostDecrement")
 {
 	Array<long> a(3, {5, 6, 7});
 	auto		getsDecremented = a.end();
 	auto		end {getsDecremented--};
-	check(end != getsDecremented);
+	CHECK(end != getsDecremented);
 }
 
-void testIteratorAdditionAssignment()
+TEST_CASE("IteratorAdditionAssignment")
 {
 	Array<int> a(5, {10, 11, 12});
 	auto	   begin = a.begin();
-	check(*(begin += 2) == 12);
-	check(*begin == 12);
+	CHECK(*(begin += 2) == 12);
+	CHECK(*begin == 12);
 }
 
-void testIteratorAddition()
+TEST_CASE("IteratorAddition")
 {
 	Array<int> a(5, {10, 11, 12});
 	auto	   second = a.begin() + 1;
 	auto	   third {2 + a.begin()};
-	check(*second == 11);
-	check(*third == 12);
+	CHECK(*second == 11);
+	CHECK(*third == 12);
 }
 
-void testIteratorSubtractionAssignment()
+TEST_CASE("IteratorSubtractionAssignment")
 {
 	Array<int> a(3, {10, 11, 12});
 	auto	   end = a.end();
-	check(*(end -= 2) == 11);
-	check(*end == 11);
+	CHECK(*(end -= 2) == 11);
+	CHECK(*end == 11);
 }
 
-void testIteratorSubtraction()
+TEST_CASE("IteratorSubtraction")
 {
 	Array<int> a(3, {10, 11, 12});
 	auto	   last	  = a.end() - 1;
 	auto	   offset = last - a.begin();
-	check(*last == 12);
-	check(size_t(offset) == a.size() - 1);
+	CHECK(*last == 12);
+	CHECK(size_t(offset) == a.size() - 1);
 }
 
-void testIteratorSubscript()
+TEST_CASE("IteratorSubscript")
 {
 	Array<int> a(6, {11, 12, 13, 14, 15, 16});
 	auto	   it = a.begin() + 2;
-	check(it[2] == 15);
-}
-
-int main()
-{
-	testDefaultConstructor();
-	testConstructorWithNonDefaultConstructibleType();
-	testConstructorWithInitialValue();
-	testConstructorWithInitializerList();
-	testConstructorWithInitializerListAndDefaultValue();
-	testCopyConstructor();
-	testMoveConstructor();
-	testCopyAssignment();
-	testMoveAssignment();
-	testSubscript();
-	testEquality();
-	testInequality();
-	testLessThan();
-	testGreaterThan();
-	testLessThanOrEqual();
-	testGreaterThanOrEqual();
-	testSpaceship();
-	testAt();
-	testGet();
-	testFront();
-	testBack();
-	testEmpty();
-	testMaxSize();
-	testFill();
-	testRelease();
-	testReset();
-	testSwap();
-	testBeginAndEnd();
-	testReverseBeginAndEnd();
-	testIteratorContiguousProperty();
-	testIteratorDefaultConstructor();
-	testIteratorDereference();
-	testIteratorArrow();
-	testIteratorEquality();
-	testIteratorInequality();
-	testIteratorLessThan();
-	testIteratorGreaterThan();
-	testIteratorLessThanOrEqual();
-	testIteratorGreaterThanOrEqual();
-	testIteratorSpaceship();
-	testIteratorPreIncrement();
-	testIteratorPostIncrement();
-	testIteratorPreDecrement();
-	testIteratorPostDecrement();
-	testIteratorAdditionAssignment();
-	testIteratorAddition();
-	testIteratorSubtractionAssignment();
-	testIteratorSubtraction();
-	testIteratorSubscript();
-
-	std::printf("All tests passed.\n");
-	_CrtDumpMemoryLeaks();
+	CHECK(it[2] == 15);
 }

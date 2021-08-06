@@ -10,13 +10,17 @@ project 'Tests'
 	location			'Tests'
 	kind				'ConsoleApp'
 	language			'C++'
-	cppdialect			'C++17'
+	cppdialect			'C++20'
 	staticruntime		'On'
 	warnings			'Extra'
 	objdir				('.bin_int/' .. outputdir .. '/%{prj.name}')
 	targetdir			('.bin/'	 .. outputdir .. '/%{prj.name}')
-	files				{ '**.cpp', '**.hpp' }
-	includedirs			''
+	files				{
+							'Include/Array.hpp',
+							'Tests/Tests.cpp',
+							'Tests/doctest/doctest/doctest.h'
+						}
+	includedirs			'Tests/doctest/'
 
 	filter 'configurations:Debug'
 		runtime			'Debug'
