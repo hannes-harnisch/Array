@@ -1,4 +1,4 @@
-workspace 'StaticList'
+workspace 'FixedList'
 	architecture		'x64'
 	configurations		{ 'Debug', 'Release' }
 	flags				{ 'MultiProcessorCompile' }
@@ -15,12 +15,17 @@ project 'Tests'
 	warnings			'Extra'
 	objdir				('.bin_int/' .. outputdir .. '/%{prj.name}')
 	targetdir			('.bin/'	 .. outputdir .. '/%{prj.name}')
-	files				{ '**.cpp', '**.hpp' }
-	includedirs			''
+	files				{
+							'Include/FixedList.hpp',
+							'Tests/Tests.cpp',
+							'Tests/doctest/doctest/doctest.h'
+						}
+	includedirs			'Tests/doctest/'
 
 	filter 'configurations:Debug'
 		runtime			'Debug'
 		symbols			'On'
+		defines			'DEBUG'
 
 	filter 'configurations:Release'
 		runtime			'Release'
