@@ -10,7 +10,7 @@ project 'Tests'
 	location			'Tests'
 	kind				'ConsoleApp'
 	language			'C++'
-	cppdialect			'C++latest'
+	cppdialect			'C++20'
 	staticruntime		'On'
 	warnings			'Extra'
 	objdir				('.bin_int/' .. outputdir .. '/%{prj.name}')

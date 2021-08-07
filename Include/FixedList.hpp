@@ -2,6 +2,7 @@
 #define HH_STATIC_LIST
 
 #include <algorithm>
+#include <cstddef>
 #include <initializer_list>
 #include <iterator>
 #include <limits>
@@ -23,7 +24,7 @@
 
 namespace hh
 {
-	template<typename T, size_t Cap> class FixedList
+	template<typename T, size_t Capacity> class FixedList
 	{
 		template<typename V> class Iterator
 		{
@@ -40,13 +41,13 @@ namespace hh
 
 			constexpr operator Iterator<V const>() const noexcept
 			{
-				return {{
+				return
+				{
 					pos,
 #if DEBUG
-					begin,
-					end,
+						begin, end
 #endif
-				}};
+				};
 			}
 
 			constexpr V& operator*() const noexcept
@@ -201,23 +202,23 @@ namespace hh
 		using reverse_iterator		 = std::reverse_iterator<iterator>;
 		using const_reverse_iterator = std::reverse_iterator<const_iterator>;
 		using count_type			 = std::conditional_t<
-			Cap <= std::numeric_limits<uint8_t>::max() && alignof(T) <= alignof(uint8_t),
+			Capacity <= std::numeric_limits<uint8_t>::max() && alignof(T) <= alignof(uint8_t),
 			uint8_t,
 			std::conditional_t<
-				Cap <= std::numeric_limits<uint16_t>::max() && alignof(T) <= alignof(uint16_t),
+				Capacity <= std::numeric_limits<uint16_t>::max() && alignof(T) <= alignof(uint16_t),
 				uint16_t,
-				std::conditional_t<Cap <= std::numeric_limits<uint32_t>::max() && alignof(T) <= alignof(uint32_t),
+				std::conditional_t<Capacity <= std::numeric_limits<uint32_t>::max() && alignof(T) <= alignof(uint32_t),
 								   uint32_t,
 								   uint64_t>>>;
 
 		static constexpr size_type capacity() noexcept
 		{
-			return Cap;
+			return Capacity;
 		}
 
 		static constexpr size_type max_size() noexcept
 		{
-			return Cap;
+			return Capacity;
 		}
 
 		FixedList() = default;
@@ -225,21 +226,21 @@ namespace hh
 		constexpr FixedList(size_type count) noexcept(std::is_nothrow_default_constructible_v<T>) :
 			elemCount(static_cast<count_type>(count))
 		{
-			HH_ASSERT(count <= Cap, "Requested size exceeded capacity.");
+			HH_ASSERT(count <= Capacity, "Requested size exceeded capacity.");
 			std::uninitialized_default_construct(begin(), end());
 		}
 
 		constexpr FixedList(size_type count, auto const& value) noexcept(std::is_nothrow_constructible_v<T, decltype(value)>) :
 			elemCount(static_cast<count_type>(count))
 		{
-			HH_ASSERT(count <= Cap, "Requested size exceeded capacity.");
+			HH_ASSERT(count <= Capacity, "Requested size exceeded capacity.");
 			std::uninitialized_fill(begin(), end(), value);
 		}
 
 		template<typename U>
 		constexpr FixedList(std::initializer_list<U> init) : elemCount(static_cast<count_type>(init.size()))
 		{
-			HH_ASSERT(init.size() <= Cap, "Size of initializer list exceeded capacity.");
+			HH_ASSERT(init.size() <= Capacity, "Size of initializer list exceeded capacity.");
 			std::uninitialized_copy(init.begin(), init.end(), begin());
 		}
 
@@ -381,50 +382,56 @@ namespace hh
 		constexpr iterator insert(const_iterator pos, auto const& value) noexcept(
 			std::is_nothrow_move_constructible_v<T>&& std::is_nothrow_constructible_v<T, decltype(value)>)
 		{
-			HH_ASSERT(elemCount < Cap, "List is out of capacity.");
+			HH_ASSERT(elemCount < Capacity, "List is out of capacity.");
 			return emplace(pos, value);
 		}
 
 		constexpr iterator insert(const_iterator pos, auto&& value) noexcept(
 			std::is_nothrow_move_constructible_v<T>&& std::is_nothrow_constructible_v<T, decltype(value)>)
 		{
-			HH_ASSERT(elemCount < Cap, "List is out of capacity.");
+			HH_ASSERT(elemCount < Capacity, "List is out of capacity.");
 			return emplace(pos, std::move(value));
 		}
 
 		constexpr iterator insert(const_iterator pos, size_type count, auto const& value) noexcept(
 			std::is_nothrow_move_constructible_v<T>&& std::is_nothrow_constructible_v<T, decltype(value)>)
 		{
-			HH_ASSERT(elemCount + count <= Cap, "List is out of capacity.");
+			HH_ASSERT(elemCount + count <= Capacity, "List is out of capacity.");
+
+			//
 		}
 
 		template<typename TInputIt>
 		constexpr iterator insert(const_iterator pos, TInputIt first, TInputIt last) noexcept(
 			std::is_nothrow_move_constructible_v<T>&& std::is_nothrow_constructible_v<T, typename TInputIt::reference>)
 		{
-			HH_ASSERT(elemCount + (last - first) <= Cap, "List is out of capacity.");
+			HH_ASSERT(elemCount + (last - first) <= Capacity, "List is out of capacity.");
+
+			//
 		}
 
 		template<typename U>
 		constexpr iterator insert(const_iterator pos, std::initializer_list<U> init) noexcept(
 			std::is_nothrow_move_constructible_v<T>&& std::is_nothrow_constructible_v<T, U>)
 		{
-			HH_ASSERT(elemCount + init.size() <= Cap, "List is out of capacity.");
+			HH_ASSERT(elemCount + init.size() <= Capacity, "List is out of capacity.");
+
+			//
 		}
 
 		template<typename... Ts>
-		constexpr iterator emplace(const_iterator pos, Ts&&... ts) noexcept(
+		constexpr iterator emplace(iterator pos, Ts&&... ts) noexcept(
 			std::is_nothrow_move_constructible_v<T>&& std::is_nothrow_constructible_v<T, Ts...>)
 		{
-			HH_ASSERT(elemCount < Cap, "List is out of capacity.");
+			HH_ASSERT(elemCount < Capacity, "List is out of capacity.");
 			return makeIterator(this, emplaceUnchecked(pos, std::forward<Ts>(ts)...));
 		}
 
 		template<typename... Ts>
-		constexpr iterator try_emplace(const_iterator pos, Ts&&... ts) noexcept(
+		constexpr iterator try_emplace(iterator pos, Ts&&... ts) noexcept(
 			std::is_nothrow_move_constructible_v<T>&& std::is_nothrow_constructible_v<T, Ts...>)
 		{
-			if(elemCount < Cap)
+			if(elemCount < Capacity)
 				return makeIterator(this, emplaceUnchecked(pos, std::forward<Ts>(ts)...));
 
 			return end();
@@ -433,14 +440,14 @@ namespace hh
 		template<typename... Ts>
 		constexpr reference emplace_back(Ts&&... ts) noexcept(std::is_nothrow_constructible_v<T, Ts...>)
 		{
-			HH_ASSERT(elemCount < Cap, "List is out of capacity.");
+			HH_ASSERT(elemCount < Capacity, "List is out of capacity.");
 			return *pushUnchecked(std::forward<Ts>(ts)...);
 		}
 
 		template<typename... Ts>
 		constexpr iterator try_emplace_back(Ts&&... ts) noexcept(std::is_nothrow_constructible_v<T, Ts...>)
 		{
-			if(elemCount < Cap)
+			if(elemCount < Capacity)
 				return makeIterator(this, pushUnchecked(std::forward<Ts>(ts)...));
 
 			return end();
@@ -493,13 +500,11 @@ namespace hh
 			return !elemCount;
 		}
 
-		// Returns the number of elements.
 		constexpr size_type size() const noexcept
 		{
 			return elemCount;
 		}
 
-		// Returns the number of elements with the integral type used to actually store the count.
 		constexpr count_type count() const noexcept
 		{
 			return elemCount;
@@ -577,7 +582,7 @@ namespace hh
 
 	private:
 		count_type elemCount = 0;
-		alignas(T) char storage[sizeof(T) * Cap];
+		alignas(T) std::byte storage[sizeof(T) * Capacity];
 
 		static constexpr auto& commonSubscript(auto self, size_type index) noexcept
 		{
@@ -612,6 +617,12 @@ namespace hh
 #endif
 		}
 
+		static void uninitializedMoveRight(T* srcBegin, T* srcEnd, T* dstEnd) noexcept(std::is_nothrow_move_constructible_v<T>)
+		{
+			while(srcBegin != srcEnd)
+				std::construct_at(--dstEnd, std::move(*--srcEnd));
+		}
+
 		template<typename... Ts> constexpr pointer pushUnchecked(Ts&&... ts) noexcept(std::is_nothrow_constructible_v<T, Ts...>)
 		{
 			return std::construct_at(data() + elemCount++, std::forward<Ts>(ts)...);
@@ -621,9 +632,10 @@ namespace hh
 		constexpr pointer emplaceUnchecked(iterator pos, Ts&&... ts) noexcept(
 			std::is_nothrow_move_constructible_v<T>&& std::is_nothrow_constructible_v<T, Ts...>)
 		{
-			T* location = std::move_backward(pos.pos, data() + elemCount, data() + elemCount + 1);
+			T* endPtr = end().pos;
+			uninitializedMoveRight(pos.pos, endPtr, endPtr + 1);
 			++elemCount;
-			return std::construct_at(location, std::forward<Ts>(ts)...);
+			return std::construct_at(pos.pos, std::forward<Ts>(ts)...);
 		}
 
 		constexpr void popUnchecked() noexcept
