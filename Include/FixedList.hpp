@@ -24,221 +24,221 @@
 
 namespace hh
 {
-	template<typename T, size_t Capacity> class FixedList
+	template<typename V> class FixedListIterator
 	{
-		template<typename V> class Iterator
-		{
-			friend FixedList;
-
-		public:
-			using iterator_concept = std::contiguous_iterator_tag;
-			using value_type	   = V;
-			using pointer		   = V*;
-			using reference		   = V&;
-			using difference_type  = std::ptrdiff_t;
-
-			constexpr Iterator() = default;
-
-			constexpr operator Iterator<V const>() const noexcept
-			{
-				return
-				{
-					pos,
-#if DEBUG
-						begin, end
-#endif
-				};
-			}
-
-			constexpr V& operator*() const noexcept
-			{
-				return *operator->();
-			}
-
-			constexpr V* operator->() const noexcept
-			{
-				HH_ASSERT(begin <= pos && pos < end, "Tried to dereference value-initialized iterator.");
-				return pos;
-			}
-
-			template<typename U> constexpr bool operator==(Iterator<U> that) const noexcept
-			{
-				return pos == that.pos;
-			}
-
-			template<typename U> constexpr bool operator!=(Iterator<U> that) const noexcept
-			{
-				return pos != that.pos;
-			}
-
-			template<typename U> constexpr bool operator<(Iterator<U> that) const noexcept
-			{
-				return pos < that.pos;
-			}
-
-			template<typename U> constexpr bool operator<=(Iterator<U> that) const noexcept
-			{
-				return pos <= that.pos;
-			}
-
-			template<typename U> constexpr bool operator>(Iterator<U> that) const noexcept
-			{
-				return pos > that.pos;
-			}
-
-			template<typename U> constexpr bool operator>=(Iterator<U> that) const noexcept
-			{
-				return pos >= that.pos;
-			}
-
-			template<typename U> constexpr std::strong_ordering operator<=>(Iterator<U> that) const noexcept
-			{
-				return pos <=> that.pos;
-			}
-
-			constexpr Iterator& operator++() noexcept
-			{
-				incrementPosition(1);
-				return *this;
-			}
-
-			constexpr Iterator operator++(int) noexcept
-			{
-				auto old = *this;
-				incrementPosition(1);
-				return old;
-			}
-
-			constexpr Iterator& operator--() noexcept
-			{
-				decrementPosition(1);
-				return *this;
-			}
-
-			constexpr Iterator operator--(int) noexcept
-			{
-				auto old = *this;
-				decrementPosition(1);
-				return old;
-			}
-
-			constexpr Iterator& operator+=(difference_type offset) noexcept
-			{
-				incrementPosition(offset);
-				return *this;
-			}
-
-			constexpr Iterator operator+(difference_type offset) const noexcept
-			{
-				auto old = *this;
-				return old += offset;
-			}
-
-			friend constexpr Iterator operator+(difference_type offset, Iterator iterator) noexcept
-			{
-				return iterator + offset;
-			}
-
-			constexpr Iterator& operator-=(difference_type offset) noexcept
-			{
-				decrementPosition(offset);
-				return *this;
-			}
-
-			constexpr Iterator operator-(difference_type offset) const noexcept
-			{
-				auto old = *this;
-				return old -= offset;
-			}
-
-			template<typename U> constexpr difference_type operator-(Iterator<U> that) const noexcept
-			{
-				return pos - that.pos;
-			}
-
-			constexpr V& operator[](difference_type offset) const noexcept
-			{
-				return *(*this + offset);
-			}
-
-		private:
-			V* pos = {};
-#ifdef DEBUG
-			V* begin = {};
-			V* end	 = {};
-
-			constexpr Iterator(V* pos, V* begin, V* end) noexcept : pos(pos), begin(begin), end(end)
-			{}
-#else
-			constexpr Iterator(V* pos) noexcept : pos(pos)
-			{}
-#endif
-
-			constexpr void incrementPosition(difference_type offset) noexcept
-			{
-				HH_ASSERT(pos, "Cannot increment value-initialized iterator.");
-				HH_ASSERT(pos < end, "Cannot increment list iterator past end.");
-				pos += offset;
-			}
-
-			constexpr void decrementPosition(difference_type offset) noexcept
-			{
-				HH_ASSERT(pos, "Cannot decrement value-initialized iterator.");
-				HH_ASSERT(begin < pos, "Cannot decrement list iterator before begin.");
-				pos -= offset;
-			}
-		};
+		template<typename> friend class FixedListIterator;
+		template<typename, unsigned> friend class FixedList;
+		template<typename> friend struct std::pointer_traits;
 
 	public:
-		using value_type			 = T;
-		using reference				 = T&;
-		using const_reference		 = T const&;
-		using pointer				 = T*;
-		using const_pointer			 = T const*;
-		using size_type				 = std::size_t;
-		using difference_type		 = std::ptrdiff_t;
-		using iterator				 = Iterator<value_type>;
-		using const_iterator		 = Iterator<value_type const>;
-		using reverse_iterator		 = std::reverse_iterator<iterator>;
-		using const_reverse_iterator = std::reverse_iterator<const_iterator>;
-		using count_type			 = std::conditional_t<
+		using iterator_concept = std::contiguous_iterator_tag;
+		using value_type	   = V;
+		using pointer		   = V*;
+		using reference		   = V&;
+		using difference_type  = std::ptrdiff_t;
+
+		FixedListIterator() = default;
+
+		operator FixedListIterator<V const>() const noexcept
+		{
+			return
+			{
+				pos,
+#if DEBUG
+					begin, end
+#endif
+			};
+		}
+
+		V& operator*() const noexcept
+		{
+			return *operator->();
+		}
+
+		V* operator->() const noexcept
+		{
+			HH_ASSERT(begin <= pos && pos < end, "Tried to dereference value-initialized or end iterator.");
+			return pos;
+		}
+
+		template<typename U> bool operator==(FixedListIterator<U> that) const noexcept
+		{
+			return pos == that.pos;
+		}
+
+		template<typename U> bool operator!=(FixedListIterator<U> that) const noexcept
+		{
+			return pos != that.pos;
+		}
+
+		template<typename U> bool operator<(FixedListIterator<U> that) const noexcept
+		{
+			return pos < that.pos;
+		}
+
+		template<typename U> bool operator<=(FixedListIterator<U> that) const noexcept
+		{
+			return pos <= that.pos;
+		}
+
+		template<typename U> bool operator>(FixedListIterator<U> that) const noexcept
+		{
+			return pos > that.pos;
+		}
+
+		template<typename U> bool operator>=(FixedListIterator<U> that) const noexcept
+		{
+			return pos >= that.pos;
+		}
+
+		template<typename U> std::strong_ordering operator<=>(FixedListIterator<U> that) const noexcept
+		{
+			return pos <=> that.pos;
+		}
+
+		FixedListIterator& operator++() noexcept
+		{
+			incrementPosition(1);
+			return *this;
+		}
+
+		FixedListIterator operator++(int) noexcept
+		{
+			auto old = *this;
+			incrementPosition(1);
+			return old;
+		}
+
+		FixedListIterator& operator--() noexcept
+		{
+			decrementPosition(1);
+			return *this;
+		}
+
+		FixedListIterator operator--(int) noexcept
+		{
+			auto old = *this;
+			decrementPosition(1);
+			return old;
+		}
+
+		FixedListIterator& operator+=(difference_type offset) noexcept
+		{
+			incrementPosition(offset);
+			return *this;
+		}
+
+		FixedListIterator operator+(difference_type offset) const noexcept
+		{
+			auto old = *this;
+			return old += offset;
+		}
+
+		friend FixedListIterator operator+(difference_type offset, FixedListIterator iterator) noexcept
+		{
+			return iterator + offset;
+		}
+
+		FixedListIterator& operator-=(difference_type offset) noexcept
+		{
+			decrementPosition(offset);
+			return *this;
+		}
+
+		FixedListIterator operator-(difference_type offset) const noexcept
+		{
+			auto old = *this;
+			return old -= offset;
+		}
+
+		template<typename U> difference_type operator-(FixedListIterator<U> that) const noexcept
+		{
+			return pos - that.pos;
+		}
+
+		V& operator[](difference_type offset) const noexcept
+		{
+			return *(*this + offset);
+		}
+
+	private:
+		V* pos = {};
+#ifdef DEBUG
+		V* begin = {};
+		V* end	 = {};
+
+		FixedListIterator(V* pos, V* begin, V* end) noexcept : pos(pos), begin(begin), end(end)
+		{}
+#else
+		FixedListIterator(V* pos) noexcept : pos(pos)
+		{}
+#endif
+
+		void incrementPosition(difference_type offset) noexcept
+		{
+			HH_ASSERT(pos, "Cannot increment value-initialized iterator.");
+			HH_ASSERT(pos < end, "Cannot increment list iterator past end.");
+			pos += offset;
+		}
+
+		void decrementPosition(difference_type offset) noexcept
+		{
+			HH_ASSERT(pos, "Cannot decrement value-initialized iterator.");
+			HH_ASSERT(begin < pos, "Cannot decrement list iterator before begin.");
+			pos -= offset;
+		}
+	};
+
+	template<typename T, unsigned Capacity> class FixedList
+	{
+	public:
+		using value_type	  = T;
+		using reference		  = T&;
+		using const_reference = T const&;
+		using pointer		  = T*;
+		using const_pointer	  = T const*;
+		using size_type		  = std::size_t;
+		using difference_type = std::ptrdiff_t;
+
+		using count_type = std::conditional_t<
 			Capacity <= std::numeric_limits<uint8_t>::max() && alignof(T) <= alignof(uint8_t),
 			uint8_t,
-			std::conditional_t<
-				Capacity <= std::numeric_limits<uint16_t>::max() && alignof(T) <= alignof(uint16_t),
-				uint16_t,
-				std::conditional_t<Capacity <= std::numeric_limits<uint32_t>::max() && alignof(T) <= alignof(uint32_t),
-								   uint32_t,
-								   uint64_t>>>;
+			std::conditional_t<Capacity <= std::numeric_limits<uint16_t>::max() && alignof(T) <= alignof(uint16_t),
+							   uint16_t,
+							   std::conditional_t<alignof(T) <= alignof(uint32_t), uint32_t, uint64_t>>>;
 
-		static constexpr size_type capacity() noexcept
+		using iterator				 = FixedListIterator<value_type>;
+		using const_iterator		 = FixedListIterator<value_type const>;
+		using reverse_iterator		 = std::reverse_iterator<iterator>;
+		using const_reverse_iterator = std::reverse_iterator<const_iterator>;
+
+		static size_type capacity() noexcept
 		{
 			return Capacity;
 		}
 
-		static constexpr size_type max_size() noexcept
+		static size_type max_size() noexcept
 		{
 			return Capacity;
 		}
 
 		FixedList() = default;
 
-		constexpr FixedList(size_type count) noexcept(std::is_nothrow_default_constructible_v<T>) :
+		FixedList(size_type count) noexcept(std::is_nothrow_default_constructible_v<T>) :
 			elemCount(static_cast<count_type>(count))
 		{
 			HH_ASSERT(count <= Capacity, "Requested size exceeded capacity.");
 			std::uninitialized_default_construct(begin(), end());
 		}
 
-		constexpr FixedList(size_type count, auto const& value) noexcept(std::is_nothrow_constructible_v<T, decltype(value)>) :
+		FixedList(size_type count, auto const& value) noexcept(std::is_nothrow_constructible_v<T, decltype(value)>) :
 			elemCount(static_cast<count_type>(count))
 		{
 			HH_ASSERT(count <= Capacity, "Requested size exceeded capacity.");
 			std::uninitialized_fill(begin(), end(), value);
 		}
 
-		template<typename U>
-		constexpr FixedList(std::initializer_list<U> init) : elemCount(static_cast<count_type>(init.size()))
+		template<typename U> FixedList(std::initializer_list<U> init) : elemCount(static_cast<count_type>(init.size()))
 		{
 			HH_ASSERT(init.size() <= Capacity, "Size of initializer list exceeded capacity.");
 			std::uninitialized_copy(init.begin(), init.end(), begin());
@@ -246,28 +246,28 @@ namespace hh
 
 		FixedList(FixedList const&) requires std::is_trivially_copy_constructible_v<T> = default;
 
-		constexpr FixedList(FixedList const& that) noexcept(std::is_nothrow_copy_constructible_v<T>) : elemCount(that.elemCount)
+		FixedList(FixedList const& that) noexcept(std::is_nothrow_copy_constructible_v<T>) : elemCount(that.elemCount)
 		{
 			std::uninitialized_copy(that.begin(), that.end(), begin());
 		}
 
 		FixedList(FixedList&&) requires std::is_trivially_move_constructible_v<T> = default;
 
-		constexpr FixedList(FixedList&& that) noexcept(std::is_nothrow_move_constructible_v<T>) : elemCount(that.elemCount)
+		FixedList(FixedList&& that) noexcept(std::is_nothrow_move_constructible_v<T>) : elemCount(that.elemCount)
 		{
 			std::uninitialized_move(that.begin(), that.end(), begin());
 		}
 
 		~FixedList() requires std::is_trivially_destructible_v<T> = default;
 
-		constexpr ~FixedList()
+		~FixedList()
 		{
 			destruct();
 		}
 
 		FixedList& operator=(FixedList const&) requires std::is_trivially_copy_assignable_v<T> = default;
 
-		constexpr FixedList& operator=(FixedList const& that) noexcept(std::is_nothrow_copy_constructible_v<T>)
+		FixedList& operator=(FixedList const& that) noexcept(std::is_nothrow_copy_constructible_v<T>)
 		{
 			assign(that.begin(), that.end());
 			return *this;
@@ -275,7 +275,7 @@ namespace hh
 
 		FixedList& operator=(FixedList&&) requires std::is_trivially_move_assignable_v<T> = default;
 
-		constexpr FixedList& operator=(FixedList&& that) noexcept(std::is_nothrow_move_constructible_v<T>)
+		FixedList& operator=(FixedList&& that) noexcept(std::is_nothrow_move_constructible_v<T>)
 		{
 			destruct();
 			std::uninitialized_move(that.begin(), that.end(), begin());
@@ -283,92 +283,92 @@ namespace hh
 			return *this;
 		}
 
-		constexpr bool operator==(auto const& that) const noexcept
+		bool operator==(auto const& that) const noexcept
 		{
 			return size() == std::size(that) && std::equal(begin(), end(), std::begin(that));
 		}
 
-		constexpr bool operator!=(auto const& that) const noexcept
+		bool operator!=(auto const& that) const noexcept
 		{
 			return !operator==(that);
 		}
 
-		constexpr bool operator<(auto const& that) const noexcept
+		bool operator<(auto const& that) const noexcept
 		{
 			return std::lexicographical_compare(begin(), end(), std::begin(that), std::end(that));
 		}
 
-		constexpr bool operator<=(auto const& that) const noexcept
+		bool operator<=(auto const& that) const noexcept
 		{
 			return !operator>(that);
 		}
 
-		constexpr bool operator>(auto const& that) const noexcept
+		bool operator>(auto const& that) const noexcept
 		{
 			return that < *this;
 		}
 
-		constexpr bool operator>=(auto const& that) const noexcept
+		bool operator>=(auto const& that) const noexcept
 		{
 			return !operator<(that);
 		}
 
-		constexpr auto operator<=>(auto const& that) const noexcept
+		auto operator<=>(auto const& that) const noexcept
 		{
 			return std::lexicographical_compare_three_way(begin(), end(), std::begin(that), std::end(that));
 		}
 
-		constexpr reference operator[](size_type index) noexcept
+		reference operator[](size_type index) noexcept
 		{
 			return commonSubscript(this, index);
 		}
 
-		constexpr const_reference operator[](size_type index) const noexcept
+		const_reference operator[](size_type index) const noexcept
 		{
 			return commonSubscript(this, index);
 		}
 
-		constexpr reference at(size_type index)
+		reference at(size_type index)
 		{
 			return commonAt(this, index);
 		}
 
-		constexpr const_reference at(size_type index) const
+		const_reference at(size_type index) const
 		{
 			return commonAt(this, index);
 		}
 
-		constexpr pointer get(size_type index) noexcept
+		pointer get(size_type index) noexcept
 		{
 			return commonGet(this, index);
 		}
 
-		constexpr const_pointer get(size_type index) const noexcept
+		const_pointer get(size_type index) const noexcept
 		{
 			return commonGet(this, index);
 		}
 
-		constexpr reference front() noexcept
+		reference front() noexcept
 		{
 			return (*this)[0];
 		}
 
-		constexpr const_reference front() const noexcept
+		const_reference front() const noexcept
 		{
 			return (*this)[0];
 		}
 
-		constexpr reference back() noexcept
+		reference back() noexcept
 		{
 			return (*this)[elemCount - 1];
 		}
 
-		constexpr const_reference back() const noexcept
+		const_reference back() const noexcept
 		{
 			return (*this)[elemCount - 1];
 		}
 
-		constexpr void assign(size_type count, auto const& value) noexcept(std::is_nothrow_constructible_v<T, decltype(value)>)
+		void assign(size_type count, auto const& value) noexcept(std::is_nothrow_constructible_v<T, decltype(value)>)
 		{
 			HH_ASSERT(count <= Capacity, "Requested size exceeded capacity.");
 
@@ -378,33 +378,31 @@ namespace hh
 		}
 
 		template<typename TInputIt>
-		constexpr void assign(TInputIt first, TInputIt last) noexcept(
-			std::is_nothrow_constructible_v<T, std::iterator_traits<TInputIt>::reference>)
+		void assign(TInputIt first,
+					TInputIt last) noexcept(std::is_nothrow_constructible_v<T, std::iterator_traits<TInputIt>::reference>)
 		{
 			clear();
 			while(first != last)
 				emplace_back(*first++);
 		}
 
-		template<typename U>
-		constexpr void assign(std::initializer_list<U> init) noexcept(std::is_nothrow_constructible_v<T, U>)
+		template<typename U> void assign(std::initializer_list<U> init) noexcept(std::is_nothrow_constructible_v<T, U>)
 		{
 			assign(init.begin(), init.end());
 		}
 
-		constexpr iterator insert(iterator pos, auto const& value) noexcept(
-			std::is_nothrow_move_constructible_v<T>&& std::is_nothrow_constructible_v<T, decltype(value)>)
+		iterator insert(iterator pos, T const& value) noexcept(
+			std::is_nothrow_move_constructible_v<T>&& std::is_nothrow_copy_constructible_v<T>)
 		{
 			return emplace(pos, value);
 		}
 
-		constexpr iterator insert(iterator pos, auto&& value) noexcept(
-			std::is_nothrow_move_constructible_v<T>&& std::is_nothrow_constructible_v<T, decltype(value)>)
+		iterator insert(iterator pos, T&& value) noexcept(std::is_nothrow_move_constructible_v<T>)
 		{
 			return emplace(pos, std::move(value));
 		}
 
-		constexpr iterator insert(iterator pos, size_type count, auto const& value) noexcept(
+		iterator insert(iterator pos, size_type count, auto const& value) noexcept(
 			std::is_nothrow_move_constructible_v<T>&& std::is_nothrow_constructible_v<T, decltype(value)>)
 		{
 			HH_ASSERT(elemCount + count <= Capacity, "List is out of capacity.");
@@ -420,7 +418,7 @@ namespace hh
 		}
 
 		template<typename TInputIt>
-		constexpr iterator insert(iterator pos, TInputIt first, TInputIt last) noexcept(
+		iterator insert(iterator pos, TInputIt first, TInputIt last) noexcept(
 			std::is_nothrow_move_constructible_v<T>&&
 				std::is_nothrow_constructible_v<T, std::iterator_traits<TInputIt>::reference>)
 		{
@@ -438,14 +436,14 @@ namespace hh
 		}
 
 		template<typename U>
-		constexpr iterator insert(iterator pos, std::initializer_list<U> init) noexcept(
+		iterator insert(iterator pos, std::initializer_list<U> init) noexcept(
 			std::is_nothrow_move_constructible_v<T>&& std::is_nothrow_constructible_v<T, U>)
 		{
 			return insert(pos, init.begin(), init.end());
 		}
 
 		template<typename... Ts>
-		constexpr iterator emplace(iterator pos, Ts&&... ts) noexcept(
+		iterator emplace(iterator pos, Ts&&... ts) noexcept(
 			std::is_nothrow_move_constructible_v<T>&& std::is_nothrow_constructible_v<T, Ts...>)
 		{
 			HH_ASSERT(elemCount < Capacity, "List is out of capacity.");
@@ -453,7 +451,7 @@ namespace hh
 		}
 
 		template<typename... Ts>
-		constexpr iterator try_emplace(iterator pos, Ts&&... ts) noexcept(
+		iterator try_emplace(iterator pos, Ts&&... ts) noexcept(
 			std::is_nothrow_move_constructible_v<T>&& std::is_nothrow_constructible_v<T, Ts...>)
 		{
 			if(elemCount < Capacity)
@@ -462,15 +460,13 @@ namespace hh
 			return end();
 		}
 
-		template<typename... Ts>
-		constexpr reference emplace_back(Ts&&... ts) noexcept(std::is_nothrow_constructible_v<T, Ts...>)
+		template<typename... Ts> reference emplace_back(Ts&&... ts) noexcept(std::is_nothrow_constructible_v<T, Ts...>)
 		{
 			HH_ASSERT(elemCount < Capacity, "List is out of capacity.");
 			return *pushUnchecked(std::forward<Ts>(ts)...);
 		}
 
-		template<typename... Ts>
-		constexpr iterator try_emplace_back(Ts&&... ts) noexcept(std::is_nothrow_constructible_v<T, Ts...>)
+		template<typename... Ts> iterator try_emplace_back(Ts&&... ts) noexcept(std::is_nothrow_constructible_v<T, Ts...>)
 		{
 			if(elemCount < Capacity)
 				return makeIterator(this, pushUnchecked(std::forward<Ts>(ts)...));
@@ -478,23 +474,23 @@ namespace hh
 			return end();
 		}
 
-		constexpr void push_back(T const& value) noexcept(std::is_nothrow_copy_constructible_v<T>)
+		void push_back(T const& value) noexcept(std::is_nothrow_copy_constructible_v<T>)
 		{
 			emplace_back(value);
 		}
 
-		constexpr void push_back(T&& value) noexcept(std::is_nothrow_move_constructible_v<T>)
+		void push_back(T&& value) noexcept(std::is_nothrow_move_constructible_v<T>)
 		{
 			emplace_back(std::move(value));
 		}
 
-		constexpr void pop_back() noexcept
+		void pop_back() noexcept
 		{
 			HH_ASSERT(elemCount, "Cannot pop elements in an empty list.");
 			popUnchecked();
 		}
 
-		constexpr bool try_pop_back() noexcept
+		bool try_pop_back() noexcept
 		{
 			if(empty())
 				return false;
@@ -503,7 +499,7 @@ namespace hh
 			return true;
 		}
 
-		constexpr iterator erase(iterator pos) noexcept(std::is_nothrow_move_constructible_v<T>)
+		iterator erase(iterator pos) noexcept(std::is_nothrow_move_constructible_v<T>)
 		{
 			HH_ASSERT(pos >= begin() && pos < end(), "Cannot erase with an invalid iterator.");
 
@@ -513,7 +509,7 @@ namespace hh
 			return pos;
 		}
 
-		constexpr iterator erase(iterator first, iterator last) noexcept(std::is_nothrow_move_constructible_v<T>)
+		iterator erase(iterator first, iterator last) noexcept(std::is_nothrow_move_constructible_v<T>)
 		{
 			HH_ASSERT(first <= last && first >= begin() && last <= end(), "Cannot erase an invalid range.");
 
@@ -523,98 +519,98 @@ namespace hh
 			return first;
 		}
 
-		constexpr void clear() noexcept
+		void clear() noexcept
 		{
 			destruct();
 			elemCount = 0;
 		}
 
-		constexpr void swap(FixedList& that) noexcept(std::is_nothrow_swappable_v<T>)
+		void swap(FixedList& that) noexcept(std::is_nothrow_swappable_v<T>)
 		{
 			std::swap(*this, that);
 		}
 
-		[[nodiscard]] constexpr bool empty() const noexcept
+		[[nodiscard]] bool empty() const noexcept
 		{
 			return !elemCount;
 		}
 
-		constexpr size_type size() const noexcept
+		size_type size() const noexcept
 		{
 			return elemCount;
 		}
 
-		constexpr count_type count() const noexcept
+		count_type count() const noexcept
 		{
 			return elemCount;
 		}
 
-		constexpr pointer data() noexcept
+		pointer data() noexcept
 		{
 			return reinterpret_cast<pointer>(storage);
 		}
 
-		constexpr const_pointer data() const noexcept
+		const_pointer data() const noexcept
 		{
 			return reinterpret_cast<const_pointer>(storage);
 		}
 
-		constexpr iterator begin() noexcept
+		iterator begin() noexcept
 		{
 			return makeIterator(this, data());
 		}
 
-		constexpr const_iterator begin() const noexcept
+		const_iterator begin() const noexcept
 		{
 			return makeIterator(this, data());
 		}
 
-		constexpr iterator end() noexcept
+		iterator end() noexcept
 		{
 			return makeIterator(this, data() + elemCount);
 		}
 
-		constexpr const_iterator end() const noexcept
+		const_iterator end() const noexcept
 		{
 			return makeIterator(this, data() + elemCount);
 		}
 
-		constexpr reverse_iterator rbegin() noexcept
+		reverse_iterator rbegin() noexcept
 		{
 			return reverse_iterator(end());
 		}
 
-		constexpr const_reverse_iterator rbegin() const noexcept
+		const_reverse_iterator rbegin() const noexcept
 		{
 			return const_reverse_iterator(end());
 		}
 
-		constexpr reverse_iterator rend() noexcept
+		reverse_iterator rend() noexcept
 		{
 			return reverse_iterator(begin());
 		}
 
-		constexpr const_reverse_iterator rend() const noexcept
+		const_reverse_iterator rend() const noexcept
 		{
 			return const_reverse_iterator(begin());
 		}
 
-		constexpr const_iterator cbegin() const noexcept
+		const_iterator cbegin() const noexcept
 		{
 			return begin();
 		}
 
-		constexpr const_iterator cend() const noexcept
+		const_iterator cend() const noexcept
 		{
 			return end();
 		}
 
-		constexpr const_reverse_iterator crbegin() const noexcept
+		const_reverse_iterator crbegin() const noexcept
 		{
 			return rbegin();
 		}
 
-		constexpr const_reverse_iterator crend() const noexcept
+		const_reverse_iterator crend() const noexcept
 		{
 			return rend();
 		}
@@ -623,13 +619,13 @@ namespace hh
 		count_type elemCount = 0;
 		alignas(T) std::byte storage[sizeof(T) * Capacity];
 
-		static constexpr auto& commonSubscript(auto self, size_type index) noexcept
+		static auto& commonSubscript(auto self, size_type index) noexcept
 		{
 			HH_ASSERT(index < self->elemCount, "Tried to access list out of range.");
 			return self->data()[index];
 		}
 
-		static constexpr auto& commonAt(auto self, size_type index)
+		static auto& commonAt(auto self, size_type index)
 		{
 			if(index < self->elemCount)
 				return self->data()[index];
@@ -637,7 +633,7 @@ namespace hh
 			throw std::out_of_range("Index into list was out of range.");
 		}
 
-		static constexpr auto commonGet(auto self, size_type index) noexcept
+		static auto commonGet(auto self, size_type index) noexcept
 		{
 			if(index < self->elemCount)
 				return self->data() + index;
@@ -646,7 +642,7 @@ namespace hh
 		}
 
 		template<typename S>
-		static constexpr auto makeIterator(S self, auto position) noexcept
+		static auto makeIterator(S self, auto position) noexcept
 			-> std::conditional_t<std::is_const_v<std::remove_pointer_t<S>>, const_iterator, iterator>
 		{
 #ifdef DEBUG
@@ -668,13 +664,13 @@ namespace hh
 				std::construct_at(--dstEnd, std::move(*--srcEnd));
 		}
 
-		template<typename... Ts> constexpr pointer pushUnchecked(Ts&&... ts) noexcept(std::is_nothrow_constructible_v<T, Ts...>)
+		template<typename... Ts> pointer pushUnchecked(Ts&&... ts) noexcept(std::is_nothrow_constructible_v<T, Ts...>)
 		{
 			return std::construct_at(data() + elemCount++, std::forward<Ts>(ts)...);
 		}
 
 		template<typename... Ts>
-		constexpr pointer emplaceUnchecked(iterator pos, Ts&&... ts) noexcept(
+		pointer emplaceUnchecked(iterator pos, Ts&&... ts) noexcept(
 			std::is_nothrow_move_constructible_v<T>&& std::is_nothrow_constructible_v<T, Ts...>)
 		{
 			T* endPtr = end().pos;
@@ -683,14 +679,30 @@ namespace hh
 			return std::construct_at(pos.pos, std::forward<Ts>(ts)...);
 		}
 
-		constexpr void popUnchecked() noexcept
+		void popUnchecked() noexcept
 		{
 			std::destroy_at(data() + --elemCount);
 		}
 
-		constexpr void destruct() noexcept
+		void destruct() noexcept
 		{
 			std::destroy(begin(), end());
+		}
+	};
+}
+
+namespace std
+{
+	template<typename T> struct pointer_traits<hh::FixedListIterator<T>>
+	{
+		using pointer		  = hh::FixedListIterator<T>;
+		using element_type	  = typename pointer::value_type;
+		using difference_type = typename pointer::difference_type;
+
+		[[nodiscard]] static constexpr element_type* to_address(pointer iter) noexcept
+		{
+			HH_ASSERT(iter.begin <= iter.pos && iter.pos <= iter.end, "Iterator is not within a validly addressable range.");
+			return std::to_address(iter.pos);
 		}
 	};
 }

@@ -7,6 +7,7 @@ using namespace hh;
 
 #include <iostream>
 #include <string>
+#include <vector>
 
 using namespace std;
 
@@ -16,7 +17,50 @@ TEST_CASE("defaultConstruct")
 	CHECK(l.count() == 0);
 }
 
-TEST_CASE("insert_Range")
+TEST_CASE("constructWithCount")
+{
+	struct A
+	{
+		string s = "ABC";
+	};
+	FixedList<A, 15> l(11);
+	CHECK(l.size() == 11);
+
+	for(auto& a : l)
+		CHECK(a.s == "ABC");
+}
+
+TEST_CASE("constructWithCountDefaultValue")
+{
+	constexpr auto atla =
+		"Water. Earth. Fire. Air. My grandmother used to tell me stories about the old days, a time of peace when the Avatar "
+		"kept balance between the Water Tribes, Earth Kingdom, Fire Nation, and Air Nomads. But that all changed when the Fire "
+		"Nation attacked. Only the Avatar mastered all four elements. Only he could stop the ruthless fire-benders. But when "
+		"the world needed him most, he vanished. A hundred years have passed and the Fire Nation is nearing victory in the "
+		"War. Two years ago, my father and the men of my tribe journeyed to the Earth Kingdom to help fight against the Fire "
+		"Nation, leaving me and my brother to look after our tribe. Some people believe that the Avatar was never reborn into "
+		"the Air Nomads, and that the cycle is broken. But I haven't lost hope. I still believe that somehow, the Avatar will "
+		"return to save the world.";
+	FixedList<string, 15> l(11, atla);
+	CHECK(l.size() == 11);
+
+	for(auto& s : l)
+		CHECK(s == atla);
+}
+
+TEST_CASE("constructWithInitList")
+{
+	FixedList<string, 15> l {"1", "2", "3", "4", "5"};
+	CHECK(l.size() == 5);
+
+	CHECK(l[0] == "1");
+	CHECK(l[1] == "2");
+	CHECK(l[2] == "3");
+	CHECK(l[3] == "4");
+	CHECK(l[4] == "5");
+}
+
+TEST_CASE("insert(It,It)")
 {
 	FixedList<string, 15> l;
 	l.emplace_back("AAA");
@@ -45,5 +89,6 @@ TEST_CASE("erase(It,It)")
 {
 	FixedList<int, 10> l {2, 3, 4, 5, 6, 7, 8, 9};
 	l.erase(l.begin() + 2, l.end());
-	static_assert(std::is_trivially_destructible_v<decltype(l)>);
+	vector<int> v {2, 3};
+	CHECK(l == v);
 }
