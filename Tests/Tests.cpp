@@ -16,6 +16,8 @@ TEST_CASE("defaultConstruct")
 {
 	FixedList<string, 5> l;
 	CHECK(l.count() == 0);
+
+	static_assert(is_nothrow_default_constructible_v<decltype(l)>);
 }
 
 TEST_CASE("constructWithCount")
@@ -49,6 +51,58 @@ TEST_CASE("constructWithCountDefaultValue")
 		CHECK(s == atla);
 }
 
+TEST_CASE("constructFromRange")
+{
+	vector<string> v {"E", "D", "C", "B", "A"};
+
+	FixedList<string, 15> l(v.begin(), v.end());
+	CHECK(l.size() == 5);
+
+	CHECK(l[0] == "E");
+	CHECK(l[1] == "D");
+	CHECK(l[2] == "C");
+	CHECK(l[3] == "B");
+	CHECK(l[4] == "A");
+
+	static unsigned counter = 8;
+	struct I
+	{
+		virtual ~I() = default;
+
+		virtual void fun() = 0;
+	};
+	struct X : I
+	{
+		~X()
+		{
+			--counter;
+		}
+
+		void fun() override
+		{
+			--counter;
+		}
+	};
+	vector<unique_ptr<I>> v2;
+	v2.emplace_back(make_unique<X>());
+	v2.emplace_back(make_unique<X>());
+	v2.emplace_back(make_unique<X>());
+	v2.emplace_back(make_unique<X>());
+
+	auto move_begin = make_move_iterator(v2.begin());
+	auto move_end	= make_move_iterator(v2.end());
+	{
+		FixedList<unique_ptr<I>, 6> l2(move_begin, move_end);
+		CHECK(l2.size() == 4);
+
+		for(auto& p : l2)
+			p->fun();
+
+		CHECK(counter == 4);
+	}
+	CHECK(counter == 0);
+}
+
 TEST_CASE("constructWithInitList")
 {
 	FixedList<string, 15> l {"1", "2", "3", "4", "5"};
@@ -76,8 +130,8 @@ TEST_CASE("copyConstruct")
 	}
 	CHECK(reached);
 
-	static_assert(std::is_trivially_copy_constructible_v<FixedList<int, 1>>);
-	static_assert(!std::is_trivially_copy_constructible_v<FixedList<string, 1>>);
+	static_assert(is_trivially_copy_constructible_v<FixedList<int, 1>>);
+	static_assert(!is_trivially_copy_constructible_v<FixedList<string, 1>>);
 }
 
 TEST_CASE("moveConstruct")
@@ -102,16 +156,16 @@ TEST_CASE("moveConstruct")
 		}
 	};
 
-	FixedList<std::unique_ptr<I>, 15> l1;
-	l1.emplace_back(std::make_unique<X>());
-	l1.emplace_back(std::make_unique<X>());
-	l1.emplace_back(std::make_unique<X>());
-	l1.emplace_back(std::make_unique<X>());
-	l1.emplace_back(std::make_unique<X>());
+	FixedList<unique_ptr<I>, 15> l1;
+	l1.emplace_back(make_unique<X>());
+	l1.emplace_back(make_unique<X>());
+	l1.emplace_back(make_unique<X>());
+	l1.emplace_back(make_unique<X>());
+	l1.emplace_back(make_unique<X>());
 	CHECK(l1.size() == 5);
 
 	{
-		FixedList<std::unique_ptr<I>, 15> l2 = std::move(l1);
+		FixedList<unique_ptr<I>, 15> l2 = move(l1);
 		CHECK(l2.size() == 5);
 
 		for(auto& i : l2)
@@ -121,8 +175,8 @@ TEST_CASE("moveConstruct")
 
 	CHECK(counter == 0);
 
-	static_assert(std::is_trivially_move_constructible_v<FixedList<int, 1>>);
-	static_assert(!std::is_trivially_move_constructible_v<decltype(l1)>);
+	static_assert(is_trivially_move_constructible_v<FixedList<int, 1>>);
+	static_assert(!is_trivially_move_constructible_v<decltype(l1)>);
 }
 
 TEST_CASE("destructor")
@@ -130,8 +184,8 @@ TEST_CASE("destructor")
 	FixedList<int, 5>	 l1;
 	FixedList<string, 5> l2;
 
-	static_assert(std::is_trivially_destructible_v<decltype(l1)>);
-	static_assert(!std::is_trivially_destructible_v<decltype(l2)>);
+	static_assert(is_trivially_destructible_v<decltype(l1)>);
+	static_assert(!is_trivially_destructible_v<decltype(l2)>);
 }
 
 TEST_CASE("copyAssign")
@@ -172,26 +226,26 @@ TEST_CASE("moveAssign")
 		}
 	};
 
-	FixedList<std::unique_ptr<I>, 15> l1;
-	l1.emplace_back(std::make_unique<X>());
-	l1.emplace_back(std::make_unique<X>());
-	l1.emplace_back(std::make_unique<X>());
-	l1.emplace_back(std::make_unique<X>());
-	l1.emplace_back(std::make_unique<X>());
-	l1.emplace_back(std::make_unique<X>());
+	FixedList<unique_ptr<I>, 15> l1;
+	l1.emplace_back(make_unique<X>());
+	l1.emplace_back(make_unique<X>());
+	l1.emplace_back(make_unique<X>());
+	l1.emplace_back(make_unique<X>());
+	l1.emplace_back(make_unique<X>());
+	l1.emplace_back(make_unique<X>());
 	CHECK(l1.size() == 6);
 
 	{
-		FixedList<std::unique_ptr<I>, 15> l2;
-		l2.emplace_back(std::make_unique<X>());
-		l2.emplace_back(std::make_unique<X>());
-		l2.emplace_back(std::make_unique<X>());
+		FixedList<unique_ptr<I>, 15> l2;
+		l2.emplace_back(make_unique<X>());
+		l2.emplace_back(make_unique<X>());
+		l2.emplace_back(make_unique<X>());
 		CHECK(l2.size() == 3);
 
 		for(auto& i : l2)
 			i->fun();
 
-		l2 = std::move(l1);
+		l2 = move(l1);
 		CHECK(counter == 6);
 	}
 
@@ -250,22 +304,22 @@ TEST_CASE("operator>=")
 
 TEST_CASE("operator<=>")
 {
-	std::strong_ordering result;
+	strong_ordering result;
 
 	FixedList<string, 7> l1 {"A", "B", "C"};
 	FixedList<string, 7> l2 {"A", "B", "C"};
 	result = l1 <=> l2;
-	CHECK(result == std::strong_ordering::equal);
+	CHECK(result == strong_ordering::equal);
 
 	FixedList<string, 7> l3 {"A", "B", "C"};
 	FixedList<string, 7> l4 {"A", "B", "B"};
 	result = l3 <=> l4;
-	CHECK(result == std::strong_ordering::greater);
+	CHECK(result == strong_ordering::greater);
 
 	FixedList<string, 7> l5 {"A", "B", "B"};
 	FixedList<string, 7> l6 {"A", "C", "C"};
 	result = l5 <=> l6;
-	CHECK(result == std::strong_ordering::less);
+	CHECK(result == strong_ordering::less);
 }
 
 TEST_CASE("operator[]")
@@ -278,7 +332,7 @@ TEST_CASE("operator[]")
 	CHECK(l[2] == "_");
 
 	FixedList<string, 7> const l2 = {};
-	static_assert(std::is_const_v<std::remove_reference_t<decltype(std::declval<decltype(l2)>()[0])>>);
+	static_assert(is_const_v<remove_reference_t<decltype(declval<decltype(l2)>()[0])>>);
 }
 
 TEST_CASE("at")
@@ -290,7 +344,7 @@ TEST_CASE("at")
 	{
 		l.at(3);
 	}
-	catch(std::out_of_range)
+	catch(out_of_range)
 	{
 		reached = true;
 	}
