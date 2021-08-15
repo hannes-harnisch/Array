@@ -1,3 +1,12 @@
+#define HH_ASSERT(condition, message)                                                                                          \
+	{                                                                                                                          \
+		if(!(condition))                                                                                                       \
+		{                                                                                                                      \
+			__debugbreak();                                                                                                    \
+			std::abort();                                                                                                      \
+		}                                                                                                                      \
+	}
+
 #include "../Include/FixedList.hpp"
 
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
@@ -12,7 +21,7 @@ using namespace hh;
 
 using namespace std;
 
-TEST_CASE("defaultConstruct")
+TEST_CASE("ctor()")
 {
 	FixedList<string, 5> l;
 	CHECK(l.count() == 0);
@@ -20,7 +29,7 @@ TEST_CASE("defaultConstruct")
 	static_assert(is_nothrow_default_constructible_v<decltype(l)>);
 }
 
-TEST_CASE("constructWithCount")
+TEST_CASE("ctor(count)")
 {
 	struct A
 	{
@@ -33,7 +42,7 @@ TEST_CASE("constructWithCount")
 		CHECK(a.s == "ABC");
 }
 
-TEST_CASE("constructWithCountDefaultValue")
+TEST_CASE("ctor(count,value)")
 {
 	constexpr auto atla =
 		"Water. Earth. Fire. Air. My grandmother used to tell me stories about the old days, a time of peace when the Avatar "
@@ -51,7 +60,7 @@ TEST_CASE("constructWithCountDefaultValue")
 		CHECK(s == atla);
 }
 
-TEST_CASE("constructFromRange")
+TEST_CASE("ctor(first,last)")
 {
 	vector<string> v {"E", "D", "C", "B", "A"};
 
@@ -103,7 +112,7 @@ TEST_CASE("constructFromRange")
 	CHECK(counter == 0);
 }
 
-TEST_CASE("constructWithInitList")
+TEST_CASE("ctor(init)")
 {
 	FixedList<string, 15> l {"1", "2", "3", "4", "5"};
 	CHECK(l.size() == 5);
@@ -115,7 +124,7 @@ TEST_CASE("constructWithInitList")
 	CHECK(l[4] == "5");
 }
 
-TEST_CASE("copyConstruct")
+TEST_CASE("ctor(copy)")
 {
 	FixedList<string, 15> l1 {"1", "2", "3", "4", "5"};
 	FixedList<string, 15> l2 = l1;
@@ -130,11 +139,24 @@ TEST_CASE("copyConstruct")
 	}
 	CHECK(reached);
 
+	FixedList<int, 10> l3 {1, 2, 3, 4, 5};
+	FixedList<int, 10> l4 = l3;
+	CHECK(l3.size() == l4.size());
+
+	auto i	= l3.begin();
+	reached = false;
+	for(auto& s3 : l3)
+	{
+		reached = true;
+		CHECK(s3 == *i++);
+	}
+	CHECK(reached);
+
 	static_assert(is_trivially_copy_constructible_v<FixedList<int, 1>>);
 	static_assert(!is_trivially_copy_constructible_v<FixedList<string, 1>>);
 }
 
-TEST_CASE("moveConstruct")
+TEST_CASE("ctor(move)")
 {
 	static unsigned counter = 10;
 	struct I
@@ -179,7 +201,7 @@ TEST_CASE("moveConstruct")
 	static_assert(!is_trivially_move_constructible_v<decltype(l1)>);
 }
 
-TEST_CASE("destructor")
+TEST_CASE("dtor")
 {
 	FixedList<int, 5>	 l1;
 	FixedList<string, 5> l2;
@@ -188,7 +210,7 @@ TEST_CASE("destructor")
 	static_assert(!is_trivially_destructible_v<decltype(l2)>);
 }
 
-TEST_CASE("copyAssign")
+TEST_CASE("operator=(copy)")
 {
 	FixedList<string, 3> l1 {"AA", "BB", "CC"};
 	FixedList<string, 3> l2 {"DD", "EE", "FF"};
@@ -204,7 +226,7 @@ TEST_CASE("copyAssign")
 	CHECK(l2[2] == "CC");
 }
 
-TEST_CASE("moveAssign")
+TEST_CASE("operator=(move)")
 {
 	static unsigned counter = 12;
 	struct I
@@ -384,7 +406,7 @@ TEST_CASE("back")
 	CHECK(l.back() == "C");
 }
 
-TEST_CASE("assignWithCount")
+TEST_CASE("assign(count,value)")
 {
 	FixedList<string, 7> l {"X", "Y", "Z"};
 	CHECK(l[0] == "X");
@@ -392,12 +414,105 @@ TEST_CASE("assignWithCount")
 	CHECK(l[2] == "Z");
 
 	l.assign(7, "...");
+
 	CHECK(l.size() == 7);
 	for(auto& s : l)
 		CHECK(s == "...");
 }
 
-TEST_CASE("insert(It,It)")
+class TestException : public std::exception
+{};
+
+TEST_CASE("assign(count,value) throw")
+{
+	static unsigned i = 2;
+	struct X
+	{
+		X() = default;
+		X(X const&)
+		{
+			if(i--)
+				throw TestException();
+		}
+	};
+
+	bool reached = false;
+
+	FixedList<X, 9> l(3);
+	try
+	{
+		l.assign(5, {});
+	}
+	catch(TestException)
+	{
+		reached = true;
+		CHECK(l.empty());
+	}
+	CHECK(reached);
+}
+
+TEST_CASE("assign(first,last)")
+{
+	FixedList<string, 7> l {"X", "Y", "Z"};
+	CHECK(l[0] == "X");
+	CHECK(l[1] == "Y");
+	CHECK(l[2] == "Z");
+
+	vector<string> v {"4", "5", "6", "7", "8", "9", "10"};
+
+	l.assign(v.begin() + 1, v.end());
+
+	CHECK(l.size() == 6);
+
+	auto vb = v.begin() + 1;
+	for(auto& s : l)
+		CHECK(s == *vb++);
+}
+
+TEST_CASE("assign(first,last) throw")
+{
+	static unsigned i = 2;
+	struct X
+	{
+		X() = default;
+		X(X const&)
+		{
+			if(i--)
+				throw TestException();
+		}
+	};
+
+	bool reached = false;
+
+	FixedList<X, 9> l(3);
+	FixedList<X, 9> l2(3);
+	try
+	{
+		l.assign(l2.begin(), l2.end());
+	}
+	catch(TestException)
+	{
+		reached = true;
+		CHECK(l.empty());
+	}
+	CHECK(reached);
+}
+
+TEST_CASE("assign(init)")
+{
+	FixedList<string, 10> l(5);
+	CHECK(l.size() == 5);
+
+	for(auto& s : l)
+		CHECK(s.empty());
+
+	l.assign({"A", "B", "C"});
+	CHECK(l[0] == "A");
+	CHECK(l[1] == "B");
+	CHECK(l[2] == "C");
+}
+
+TEST_CASE("insert(first,last)")
 {
 	FixedList<string, 15> l;
 	l.emplace_back("AAA");
@@ -422,7 +537,7 @@ TEST_CASE("emplace")
 	CHECK(l[1] == "XXX");
 }
 
-TEST_CASE("erase(It,It)")
+TEST_CASE("erase(first,last)")
 {
 	FixedList<int, 10> l {2, 3, 4, 5, 6, 7, 8, 9};
 	l.erase(l.begin() + 2, l.end());

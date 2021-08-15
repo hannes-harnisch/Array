@@ -123,41 +123,41 @@ namespace hh
 			return old;
 		}
 
-		FixedListIterator& operator+=(difference_type offset) noexcept
+		FixedListIterator& operator+=(ptrdiff_t offset) noexcept
 		{
 			increment_position(offset);
 			return *this;
 		}
 
-		FixedListIterator operator+(difference_type offset) const noexcept
+		FixedListIterator operator+(ptrdiff_t offset) const noexcept
 		{
 			auto old = *this;
 			return old += offset;
 		}
 
-		friend FixedListIterator operator+(difference_type offset, FixedListIterator iterator) noexcept
+		friend FixedListIterator operator+(ptrdiff_t offset, FixedListIterator iterator) noexcept
 		{
 			return iterator + offset;
 		}
 
-		FixedListIterator& operator-=(difference_type offset) noexcept
+		FixedListIterator& operator-=(ptrdiff_t offset) noexcept
 		{
 			decrement_position(offset);
 			return *this;
 		}
 
-		FixedListIterator operator-(difference_type offset) const noexcept
+		FixedListIterator operator-(ptrdiff_t offset) const noexcept
 		{
 			auto old = *this;
 			return old -= offset;
 		}
 
-		template<typename U> difference_type operator-(FixedListIterator<U> that) const noexcept
+		template<typename U> ptrdiff_t operator-(FixedListIterator<U> that) const noexcept
 		{
 			return pos - that.pos;
 		}
 
-		V& operator[](difference_type offset) const noexcept
+		V& operator[](ptrdiff_t offset) const noexcept
 		{
 			return *(*this + offset);
 		}
@@ -175,14 +175,14 @@ namespace hh
 		{}
 #endif
 
-		void increment_position(difference_type offset) noexcept
+		void increment_position(ptrdiff_t offset) noexcept
 		{
 			HH_ASSERT(pos, "Cannot increment value-initialized iterator.");
 			HH_ASSERT(pos < end, "Cannot increment list iterator past end.");
 			pos += offset;
 		}
 
-		void decrement_position(difference_type offset) noexcept
+		void decrement_position(ptrdiff_t offset) noexcept
 		{
 			HH_ASSERT(pos, "Cannot decrement value-initialized iterator.");
 			HH_ASSERT(begin < pos, "Cannot decrement list iterator before begin.");
@@ -190,7 +190,7 @@ namespace hh
 		}
 	};
 
-	// Automatically allocated dynamic array with a maximum size.
+	// Dynamic array with compile-time fixed capacity. Uses no internal dynamic allocation.
 	template<typename T, unsigned Capacity> class FixedList
 	{
 	public:
@@ -209,17 +209,17 @@ namespace hh
 							   uint16_t,
 							   std::conditional_t<alignof(T) <= alignof(uint32_t), uint32_t, uint64_t>>>;
 
-		using iterator				 = FixedListIterator<value_type>;
-		using const_iterator		 = FixedListIterator<value_type const>;
+		using iterator				 = FixedListIterator<T>;
+		using const_iterator		 = FixedListIterator<T const>;
 		using reverse_iterator		 = std::reverse_iterator<iterator>;
 		using const_reverse_iterator = std::reverse_iterator<const_iterator>;
 
-		static size_type capacity() noexcept
+		static size_t capacity() noexcept
 		{
 			return Capacity;
 		}
 
-		static size_type max_size() noexcept
+		static size_t max_size() noexcept
 		{
 			return Capacity;
 		}
@@ -228,7 +228,7 @@ namespace hh
 		FixedList() = default;
 
 		// Creates a fixed list filled with count default-constructed elements.
-		FixedList(size_type count) noexcept(std::is_nothrow_default_constructible_v<T>) :
+		FixedList(size_t count) noexcept(std::is_nothrow_default_constructible_v<T>) :
 			elem_count(static_cast<count_type>(count))
 		{
 			HH_ASSERT(count <= Capacity, "Requested size exceeded capacity.");
@@ -237,7 +237,7 @@ namespace hh
 		}
 
 		// Creates a fixed list filled with count instances of the specified value.
-		FixedList(size_type count, auto const& value) noexcept(std::is_nothrow_constructible_v<T, decltype(value)>) :
+		FixedList(size_t count, T const& value) noexcept(std::is_nothrow_copy_constructible_v<T>) :
 			elem_count(static_cast<count_type>(count))
 		{
 			HH_ASSERT(count <= Capacity, "Requested size exceeded capacity.");
@@ -246,9 +246,9 @@ namespace hh
 		}
 
 		// Creates a fixed list filled with the elements from the range between first and last (exclusive).
-		template<typename TInputIt>
-		FixedList(TInputIt first, TInputIt last) noexcept(
-			std::is_nothrow_constructible_v<T, typename std::iterator_traits<TInputIt>::reference>) :
+		template<std::input_iterator It>
+		FixedList(It first,
+				  It last) noexcept(std::is_nothrow_constructible_v<T, typename std::iterator_traits<It>::reference>) :
 			elem_count(static_cast<count_type>(std::distance(first, last)))
 		{
 			HH_ASSERT(std::distance(first, last) <= Capacity, "Size of range exceeded capacity.");
@@ -356,96 +356,115 @@ namespace hh
 
 		// Retrieves the element at the specified index. Out-of-bounds access is asserted on if DEBUG is defined, otherwise the
 		// behavior is undefined.
-		reference operator[](size_type index) noexcept
+		T& operator[](size_t index) noexcept
 		{
 			return common_subscript(this, index);
 		}
 
 		// Retrieves the element at the specified index. Out-of-bounds access is asserted on if DEBUG is defined, otherwise the
 		// behavior is undefined.
-		const_reference operator[](size_type index) const noexcept
+		T const& operator[](size_t index) const noexcept
 		{
 			return common_subscript(this, index);
 		}
 
 		// Retrieves the element at the specified index. Out-of-bounds access throws std::out_of_range.
-		reference at(size_type index)
+		T& at(size_t index)
 		{
 			return common_at(this, index);
 		}
 
 		// Retrieves the element at the specified index. Out-of-bounds access throws std::out_of_range.
-		const_reference at(size_type index) const
+		T const& at(size_t index) const
 		{
 			return common_at(this, index);
 		}
 
 		// Retrieves a pointer to the element at the specified index. Out-of-bounds access returns a nullptr.
-		pointer get(size_type index) noexcept
+		T* get(size_t index) noexcept
 		{
 			return common_get(this, index);
 		}
 
 		// Retrieves a pointer to the element at the specified index. Out-of-bounds access returns a nullptr.
-		const_pointer get(size_type index) const noexcept
+		T const* get(size_t index) const noexcept
 		{
 			return common_get(this, index);
 		}
 
 		// Retrieves the first element. Calling it on an empty list is asserted on when DEBUG is defined, otherwise the behavior
 		// is undefined.
-		reference front() noexcept
+		T& front() noexcept
 		{
 			return (*this)[0];
 		}
 
 		// Retrieves the first element. Calling it on an empty list is asserted on when DEBUG is defined, otherwise the behavior
 		// is undefined.
-		const_reference front() const noexcept
+		T const& front() const noexcept
 		{
 			return (*this)[0];
 		}
 
 		// Retrieves the last element. Calling it on an empty list is asserted on when DEBUG is defined, otherwise the behavior
 		// is undefined.
-		reference back() noexcept
+		T& back() noexcept
 		{
 			return (*this)[elem_count - 1];
 		}
 
 		// Retrieves the last element. Calling it on an empty list is asserted on when DEBUG is defined, otherwise the behavior
 		// is undefined.
-		const_reference back() const noexcept
+		T const& back() const noexcept
 		{
 			return (*this)[elem_count - 1];
 		}
 
-		// Replaces all elements in the container with count instances of the specified value. The container remains unaffected
-		// when an exception is thrown during element construction. If the specified amount exceeds the capacity, an assert
-		// occurs when DEBUG is defined, otherwise the behavior is undefined.
-		void assign(size_type count, auto const& value) noexcept(std::is_nothrow_constructible_v<T, decltype(value)>)
+		// Replaces all elements in the container with count instances of the specified value. The container remains empty if an
+		// exception is thrown during element construction. If the specified amount exceeds the capacity, an assert occurs when
+		// DEBUG is defined, otherwise the behavior is undefined.
+		void assign(size_t count, T const& value) noexcept(std::is_nothrow_copy_constructible_v<T>)
 		{
 			HH_ASSERT(count <= Capacity, "Requested size exceeded capacity.");
 
-			clear();
-			while(count--)
-				push_unchecked(value);
+			destruct();
+			elem_count = static_cast<count_type>(count);
+			try
+			{
+				std::uninitialized_fill_n(begin(), count, value);
+			}
+			catch(...)
+			{
+				elem_count = 0;
+				throw;
+			}
 		}
 
 		// Replaces all elements in the container with the elements from the range between first and last (exclusive). The
-		// container remains unaffected when an exception is thrown during element construction. If the size of the range
-		// exceeds the capacity, an assert occurs when DEBUG is defined, otherwise the behavior is undefined.
-		template<typename TInputIt>
-		void assign(TInputIt first, TInputIt last) noexcept(
-			std::is_nothrow_constructible_v<T, typename std::iterator_traits<TInputIt>::reference>)
+		// container remains empty if an exception is thrown during element construction. If the size of the range exceeds the
+		// capacity, an assert occurs when DEBUG is defined, otherwise the behavior is undefined.
+		template<std::input_iterator It>
+		void assign(It first,
+					It last) noexcept(std::is_nothrow_constructible_v<T, typename std::iterator_traits<It>::reference>)
 		{
-			clear();
-			while(first != last)
-				emplace_back(*first++);
+			auto dist = std::distance(first, last);
+			HH_ASSERT(dist <= Capacity, "List does not have enough capacity.");
+
+			destruct();
+			elem_count = static_cast<count_type>(dist);
+			try
+			{
+				std::uninitialized_copy(first, last, begin());
+			}
+			catch(...)
+			{
+				elem_count = 0;
+				throw;
+			}
 		}
 
 		// Replaces all elements in the container with the elements from the initializer list. The container remains unaffected
-		// when an exception is thrown during element construction. If the size of the range exceeds the capacity, an assert
+		// if an exception is thrown during element construction. If the size of the range exceeds the capacity, an assert
 		// occurs when DEBUG is defined, otherwise the behavior is undefined.
 		template<typename U> void assign(std::initializer_list<U> init) noexcept(std::is_nothrow_constructible_v<T, U>)
 		{
@@ -453,8 +472,8 @@ namespace hh
 		}
 
 		// Inserts the specified value before the element at pos and returns an iterator to the inserted element. The container
-		// remains unaffected when an exception is thrown during construction of the element. If the container is out of
-		// capacity, an assert occurs when DEBUG is defined, otherwise the behavior is undefined.
+		// remains unaffected if an exception is thrown during construction of the element. If the container is out of capacity,
+		// an assert occurs when DEBUG is defined, otherwise the behavior is undefined.
 		template<typename U>
 		iterator insert(iterator pos,
 						U&& value) noexcept(std::is_nothrow_move_constructible_v<T>&& std::is_nothrow_constructible_v<T, U&&>)
@@ -463,7 +482,7 @@ namespace hh
 		}
 
 		// Inserts the specified value before the element at pos and returns the end iterator if the container is full,
-		// otherwise an iterator to the inserted element. The container remains unaffected when an exception is thrown during
+		// otherwise an iterator to the inserted element. The container remains unaffected if an exception is thrown during
 		// construction of the element.
 		template<typename U>
 		[[nodiscard]] iterator try_insert(iterator pos, U&& value) noexcept(
@@ -473,62 +492,63 @@ namespace hh
 		}
 
 		// Inserts count instances of the specified value before the element at pos and returns pos if count is zero, otherwise
-		// an iterator to the first inserted element. The container remains unaffected when an exception is thrown during
-		// element construction. If the container is out of capacity, an assert occurs when DEBUG is defined, otherwise the
-		// behavior is undefined.
-		iterator insert(iterator pos, size_type count, auto const& value) noexcept(
-			std::is_nothrow_move_constructible_v<T>&& std::is_nothrow_constructible_v<T, decltype(value)>)
+		// an iterator to the first inserted element. The container remains unaffected if an exception is thrown during element
+		// construction. If the container is out of capacity, an assert occurs when DEBUG is defined, otherwise the behavior is
+		// undefined.
+		iterator insert(iterator pos, size_t count, T const& value) noexcept(
+			std::is_nothrow_move_constructible_v<T>&& std::is_nothrow_copy_constructible_v<T>)
 		{
 			HH_ASSERT(elem_count + count <= Capacity, "List is out of capacity.");
 
-			return insert_unchecked(pos, count, value);
+			return insert_count_unchecked(pos, count, value);
 		}
 
 		// Inserts count instances of the specified value before the element at pos and returns the end iterator if the
 		// container is full, otherwise pos if count is zero, otherwise an iterator to the first inserted element. The container
-		// remains unaffected when an exception is thrown during element construction.
-		[[nodiscard]] iterator try_insert(iterator pos, size_type count, auto const& value) noexcept(
-			std::is_nothrow_move_constructible_v<T>&& std::is_nothrow_constructible_v<T, decltype(value)>)
+		// remains unaffected if an exception is thrown during element construction.
+		[[nodiscard]] iterator try_insert(iterator pos, size_t count, T const& value) noexcept(
+			std::is_nothrow_move_constructible_v<T>&& std::is_nothrow_copy_constructible_v<T>)
 		{
 			if(elem_count + count > Capacity)
 				return end();
 
-			return insert_unchecked(pos, count, value);
+			return insert_count_unchecked(pos, count, value);
 		}
 
 		// Inserts elements from the range between first and last (exclusive) before the element at pos and returns pos if first
-		// == last, otherwise an iterator to the first inserted element. The container remains unaffected when an exception is
+		// == last, otherwise an iterator to the first inserted element. The container remains unaffected if an exception is
 		// thrown during element construction. If the container is out of capacity, an assert occurs when DEBUG is defined,
 		// otherwise the behavior is undefined.
-		template<typename TInputIt>
-		iterator insert(iterator pos, TInputIt first, TInputIt last) noexcept(
-			std::is_nothrow_move_constructible_v<T>&&
-				std::is_nothrow_constructible_v<T, typename std::iterator_traits<TInputIt>::reference>)
+		template<std::input_iterator It>
+		iterator insert(iterator pos,
+						It		 first,
+						It		 last) noexcept(std::is_nothrow_move_constructible_v<T>&&
+											  std::is_nothrow_constructible_v<T, typename std::iterator_traits<It>::reference>)
 		{
 			auto dist = std::distance(first, last);
 			HH_ASSERT(elem_count + dist <= Capacity, "List is out of capacity.");
 
-			return insert_unchecked(pos, first, dist);
+			return insert_range_unchecked(pos, first, dist);
 		}
 
 		// Inserts elements from the range between first and last (exclusive) before the element at pos and returns the end
 		// iterator if the container is full, otherwise pos if first == last, otherwise an iterator to the first inserted
-		// element. The container remains unaffected when an exception is thrown during element construction.
-		template<typename TInputIt>
-		[[nodiscard]] iterator try_insert(iterator pos, TInputIt first, TInputIt last) noexcept(
+		// element. The container remains unaffected if an exception is thrown during element construction.
+		template<std::input_iterator It>
+		[[nodiscard]] iterator try_insert(iterator pos, It first, It last) noexcept(
 			std::is_nothrow_move_constructible_v<T>&&
-				std::is_nothrow_constructible_v<T, typename std::iterator_traits<TInputIt>::reference>)
+				std::is_nothrow_constructible_v<T, typename std::iterator_traits<It>::reference>)
 		{
 			auto dist = std::distance(first, last);
 
 			if(elem_count + dist > Capacity)
 				return end();
 
-			return insert_unchecked(pos, first, dist);
+			return insert_range_unchecked(pos, first, dist);
 		}
 
 		// Inserts elements from the initializer list before the element at pos and returns pos if the initializer list is
-		// empty, otherwise an iterator to the first inserted element. The container remains unaffected when an exception is
+		// empty, otherwise an iterator to the first inserted element. The container remains unaffected if an exception is
 		// thrown during element construction. If the container is out of capacity, an assert occurs when DEBUG is defined,
 		// otherwise the behavior is undefined.
 		template<typename U>
@@ -540,7 +560,7 @@ namespace hh
 
 		// Inserts elements from the initializer list before the element at pos and returns the end iterator if the container is
 		// full, otherwise pos if the initializer list is empty, otherwise an iterator to the first inserted element. The
-		// container remains unaffected when an exception is thrown during element construction.
+		// container remains unaffected if an exception is thrown during element construction.
 		template<typename U>
 		[[nodiscard]] iterator try_insert(iterator pos, std::initializer_list<U> init) noexcept(
 			std::is_nothrow_move_constructible_v<T>&& std::is_nothrow_constructible_v<T, U>)
@@ -549,8 +569,8 @@ namespace hh
 		}
 
 		// Constructs a new element from the specified arguments before the element at pos and returns an iterator to the
-		// new element. The container remains unaffected when an exception is thrown during element construction. If the
-		// container is out of capacity, an assert occurs when DEBUG is defined, otherwise the behavior is undefined.
+		// new element. The container remains unaffected if an exception is thrown during element construction. If the container
+		// is out of capacity, an assert occurs when DEBUG is defined, otherwise the behavior is undefined.
 		template<typename... Ts>
 		iterator emplace(iterator pos, Ts&&... ts) noexcept(
 			std::is_nothrow_move_constructible_v<T>&& std::is_nothrow_constructible_v<T, Ts...>)
@@ -575,7 +595,7 @@ namespace hh
 
 		// Appends a new element constructed from the specified arguments and returns an iterator to it. The container remains
 		// unaffected if an exception is thrown.
-		template<typename... Ts> reference emplace_back(Ts&&... ts) noexcept(std::is_nothrow_constructible_v<T, Ts...>)
+		template<typename... Ts> T& emplace_back(Ts&&... ts) noexcept(std::is_nothrow_constructible_v<T, Ts...>)
 		{
 			HH_ASSERT(elem_count < Capacity, "List is out of capacity.");
 
@@ -593,22 +613,27 @@ namespace hh
 			return make_iterator(this, push_unchecked(std::forward<Ts>(ts)...));
 		}
 
+		// Appends a new element copied from the specified value. The container remains unaffected if an exception is thrown.
 		void push_back(T const& value) noexcept(std::is_nothrow_copy_constructible_v<T>)
 		{
 			emplace_back(value);
 		}
 
+		// Appends a new element moved from the specified value. The container remains unaffected if an exception is thrown.
 		void push_back(T&& value) noexcept(std::is_nothrow_move_constructible_v<T>)
 		{
 			emplace_back(std::move(value));
 		}
 
+		// Removes the last element from the container. If the container is empty, an assert occurs when DEBUG is defined,
+		// otherwise the behavior is undefined.
 		void pop_back() noexcept
 		{
 			HH_ASSERT(elem_count, "Cannot pop elements in an empty list.");
 			pop_unchecked();
 		}
 
+		// Attempts to remove the last element from the container. Returns false if the container was empty, otherwise true.
 		[[nodiscard]] bool try_pop_back() noexcept
 		{
 			if(empty())
@@ -618,6 +643,7 @@ namespace hh
 			return true;
 		}
 
+		// Removes the element at pos and returns an iterator to the element that came after it.
 		iterator erase(iterator pos) noexcept(std::is_nothrow_move_constructible_v<T>)
 		{
 			HH_ASSERT(pos >= begin() && pos < end(), "Cannot erase with an invalid iterator.");
@@ -628,6 +654,8 @@ namespace hh
 			return pos;
 		}
 
+		// Removes all elements in the specified range and returns an iterator to the element that came after the last removed
+		// element.
 		iterator erase(iterator first, iterator last) noexcept(std::is_nothrow_move_constructible_v<T>)
 		{
 			HH_ASSERT(first <= last && first >= begin() && last <= end(), "Cannot erase an invalid range.");
@@ -638,45 +666,53 @@ namespace hh
 			return first;
 		}
 
+		// Removes all elements from the container.
 		void clear() noexcept
 		{
 			destruct();
 			elem_count = 0;
 		}
 
+		// Swaps two containers.
 		void swap(FixedList& that) noexcept(std::is_nothrow_swappable_v<T>)
 		{
 			std::swap(*this, that);
 		}
 
+		// Indicates whether the container is empty.
 		[[nodiscard]] bool empty() const noexcept
 		{
 			return !elem_count;
 		}
 
+		// Indicates whether the container is out of capacity.
 		bool full() const noexcept
 		{
 			return elem_count == Capacity;
 		}
 
-		size_type size() const noexcept
+		// Returns the amount of elements in the container.
+		size_t size() const noexcept
 		{
 			return elem_count;
 		}
 
+		// Returns the amount of elements in the container as the type that the container uses internally to track the count.
 		count_type count() const noexcept
 		{
 			return elem_count;
 		}
 
-		pointer data() noexcept
+		// Returns a pointer to the first element of the array.
+		T* data() noexcept
 		{
-			return reinterpret_cast<pointer>(storage);
+			return reinterpret_cast<T*>(storage);
 		}
 
-		const_pointer data() const noexcept
+		// Returns a pointer to the first element of the array.
+		T const* data() const noexcept
 		{
-			return reinterpret_cast<const_pointer>(storage);
+			return reinterpret_cast<T const*>(storage);
 		}
 
 		iterator begin() noexcept
@@ -743,13 +779,13 @@ namespace hh
 		count_type elem_count = 0;
 		alignas(T) std::byte storage[sizeof(T) * Capacity];
 
-		static auto& common_subscript(auto self, size_type index) noexcept
+		static auto& common_subscript(auto self, size_t index) noexcept
 		{
 			HH_ASSERT(index < self->elem_count, "Tried to access list out of range.");
 			return self->data()[index];
 		}
 
-		static auto& common_at(auto self, size_type index)
+		static auto& common_at(auto self, size_t index)
 		{
 			if(index < self->elem_count)
 				return self->data()[index];
@@ -757,7 +793,7 @@ namespace hh
 			throw std::out_of_range("Index into list was out of range.");
 		}
 
-		static auto common_get(auto self, size_type index) noexcept
+		static auto common_get(auto self, size_t index) noexcept
 		{
 			if(index < self->elem_count)
 				return self->data() + index;
@@ -789,14 +825,14 @@ namespace hh
 				std::construct_at(--dst_end, std::move(*--src_end));
 		}
 
-		template<typename... Ts> pointer push_unchecked(Ts&&... ts)
+		template<typename... Ts> T* push_unchecked(Ts&&... ts)
 		{
 			auto ptr = std::construct_at(data() + elem_count, std::forward<Ts>(ts)...);
 			++elem_count;
 			return ptr;
 		}
 
-		template<typename... Ts> pointer emplace_unchecked(iterator pos, Ts&&... ts)
+		template<typename... Ts> T* emplace_unchecked(iterator pos, Ts&&... ts)
 		{
 			auto pos_ptr = std::to_address(pos);
 			auto end_ptr = std::to_address(end());
@@ -815,7 +851,7 @@ namespace hh
 			}
 		}
 
-		iterator insert_unchecked(iterator pos, size_type const count, auto const& value)
+		iterator insert_count_unchecked(iterator pos, size_t const count, T const& value)
 		{
 			auto pos_ptr = std::to_address(pos);
 			auto end_ptr = std::to_address(end());
@@ -827,7 +863,7 @@ namespace hh
 				while(counter--)
 					std::construct_at(pos_ptr++, value);
 
-				elem_count += count;
+				elem_count += static_cast<count_type>(count);
 				return pos;
 			}
 			catch(...)
@@ -839,7 +875,8 @@ namespace hh
 			}
 		}
 
-		template<typename TInputIt> iterator insert_unchecked(iterator pos, TInputIt first, auto const dist)
+		template<std::input_iterator It>
+		iterator insert_range_unchecked(iterator pos, It first, typename std::iterator_traits<It>::difference_type const dist)
 		{
 			auto pos_ptr = std::to_address(pos);
 			auto end_ptr = std::to_address(end());
@@ -851,7 +888,7 @@ namespace hh
 				while(distance--)
 					std::construct_at(pos_ptr++, *first++);
 
-				elem_count += dist;
+				elem_count += static_cast<count_type>(dist);
 				return pos;
 			}
 			catch(...)
