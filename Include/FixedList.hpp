@@ -28,7 +28,7 @@ namespace hh
 	template<typename V> class FixedListIterator
 	{
 		template<typename> friend class FixedListIterator;
-		template<typename, unsigned> friend class FixedList;
+		template<typename, size_t> friend class FixedList;
 		template<typename> friend struct std::pointer_traits;
 
 	public:
@@ -191,7 +191,7 @@ namespace hh
 	};
 
 	// Dynamic array with compile-time fixed capacity. Uses no internal dynamic allocation.
-	template<typename T, unsigned Capacity> class FixedList
+	template<typename T, size_t Capacity> class FixedList
 	{
 	public:
 		using value_type	  = T;
@@ -463,10 +463,10 @@ namespace hh
 			}
 		}
 
-		// Replaces all elements in the container with the elements from the initializer list. The container remains unaffected
-		// if an exception is thrown during element construction. If the size of the range exceeds the capacity, an assert
-		// occurs when DEBUG is defined, otherwise the behavior is undefined.
-		template<typename U> void assign(std::initializer_list<U> init) noexcept(std::is_nothrow_constructible_v<T, U>)
+		// Replaces all elements in the container with the elements from the initializer list. The container remains empty if an
+		// exception is thrown during element construction. If the size of the range exceeds the capacity, an assert occurs when
+		// DEBUG is defined, otherwise the behavior is undefined.
+		template<typename U> void assign(std::initializer_list<U> init) noexcept(std::is_nothrow_constructible_v<T, U const&>)
 		{
 			assign(init.begin(), init.end());
 		}
@@ -553,7 +553,7 @@ namespace hh
 		// otherwise the behavior is undefined.
 		template<typename U>
 		iterator insert(iterator pos, std::initializer_list<U> init) noexcept(
-			std::is_nothrow_move_constructible_v<T>&& std::is_nothrow_constructible_v<T, U>)
+			std::is_nothrow_move_constructible_v<T>&& std::is_nothrow_constructible_v<T, U const&>)
 		{
 			return insert(pos, init.begin(), init.end());
 		}
@@ -563,7 +563,7 @@ namespace hh
 		// container remains unaffected if an exception is thrown during element construction.
 		template<typename U>
 		[[nodiscard]] iterator try_insert(iterator pos, std::initializer_list<U> init) noexcept(
-			std::is_nothrow_move_constructible_v<T>&& std::is_nothrow_constructible_v<T, U>)
+			std::is_nothrow_move_constructible_v<T>&& std::is_nothrow_constructible_v<T, U const&>)
 		{
 			return try_insert(pos, init.begin(), init.end());
 		}
@@ -846,7 +846,7 @@ namespace hh
 			}
 			catch(...)
 			{
-				move_left_unchecked(pos_ptr + 1, end_ptr, pos_ptr);
+				move_left_unchecked(pos_ptr + 1, end_ptr + 1, pos_ptr);
 				throw;
 			}
 		}
@@ -864,7 +864,7 @@ namespace hh
 					std::construct_at(pos_ptr++, value);
 
 				elem_count += static_cast<count_type>(count);
-				return pos;
+				return make_iterator(this, std::to_address(pos));
 			}
 			catch(...)
 			{
@@ -889,7 +889,7 @@ namespace hh
 					std::construct_at(pos_ptr++, *first++);
 
 				elem_count += static_cast<count_type>(dist);
-				return pos;
+				return make_iterator(this, std::to_address(pos));
 			}
 			catch(...)
 			{
