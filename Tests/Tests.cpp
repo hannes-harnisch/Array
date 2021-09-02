@@ -464,7 +464,6 @@ TEST_CASE("assign(first,last)")
 	REQUIRE(l[2] == "Z");
 
 	vector<string> v {"4", "5", "6", "7", "8", "9", "10"};
-
 	l.assign(v.begin() + 1, v.end());
 
 	REQUIRE(l.size() == 6);
@@ -671,7 +670,7 @@ TEST_CASE("try_insert(pos,count,value)")
 	REQUIRE(it == l.end());
 }
 
-TEST_CASE("insert(first,last)")
+TEST_CASE("insert(pos,first,last)")
 {
 	FixedList<string, 15> l;
 	l.emplace_back("AAA");
@@ -687,7 +686,7 @@ TEST_CASE("insert(first,last)")
 	REQUIRE(*it == "A");
 }
 
-TEST_CASE("insert(first,last) throw")
+TEST_CASE("insert(pos,first,last) throw")
 {
 	static unsigned counter = 3;
 	struct X
@@ -726,20 +725,242 @@ TEST_CASE("insert(first,last) throw")
 	REQUIRE(reached);
 }
 
+TEST_CASE("try_insert(pos,first,last)")
+{
+	FixedList<string, 8> l {"A", "E", "F", "G", "H", "I"};
+
+	vector<string> v {"A", "B", "C", "D", "E", "F"};
+
+	auto it = l.try_insert(l.begin() + 1, v.begin() + 1, v.end() - 2);
+	REQUIRE(it == l.end());
+}
+
+TEST_CASE("insert(pos,init)")
+{
+	FixedList<string, 15> l {"AAA", "BBB", "CCC"};
+
+	auto it = l.insert(l.begin() + 3, {"A", "B", "C"});
+	REQUIRE(l[0] == "AAA");
+	REQUIRE(l[1] == "BBB");
+	REQUIRE(l[2] == "CCC");
+	REQUIRE(l[3] == "A");
+	REQUIRE(l[4] == "B");
+	REQUIRE(l[5] == "C");
+	REQUIRE(l.size() == 6);
+	REQUIRE(*it == "A");
+}
+
+TEST_CASE("insert(pos,init) throw")
+{
+	static unsigned counter = 3;
+	struct X
+	{
+		string s;
+
+		X(string s) : s(s)
+		{}
+
+		X(X const&)
+		{
+			if(!counter--)
+				throw TestException();
+		}
+
+		X(X&&) = default;
+	};
+
+	bool reached = false;
+
+	FixedList<X, 9> l {"A", "B", "C"};
+	try
+	{
+		l.insert(l.begin(), {X("ok"), X("ok"), X("no"), X("oops"), X("well...")});
+	}
+	catch(TestException)
+	{
+		reached = true;
+
+		array arr {"A", "B", "C"};
+		auto  i = l.begin();
+		for(auto str : arr)
+			REQUIRE(i++->s == str);
+	}
+	REQUIRE(reached);
+}
+
+TEST_CASE("try_insert(pos,init)")
+{
+	FixedList<string, 8> l {"A", "E", "F", "G", "H", "I"};
+
+	auto it = l.try_insert(l.begin() + 1, {"A", "B", "C", "D", "E", "F"});
+	REQUIRE(it == l.end());
+}
+
 TEST_CASE("emplace")
 {
-	FixedList<string, 5> l;
-	l.emplace_back("AAA");
-	l.emplace_back("BBB");
-	l.emplace_back("CCC");
-	l.emplace(l.begin() + 1, "XXX");
+	FixedList<string, 5> l {"AAA", "BBB", "CCC"};
+
+	auto it = l.emplace(l.begin() + 1, "XXX");
+	REQUIRE(l[0] == "AAA");
 	REQUIRE(l[1] == "XXX");
+	REQUIRE(l[2] == "BBB");
+	REQUIRE(l[3] == "CCC");
+	REQUIRE(*it == "XXX");
+	REQUIRE(l.size() == 4);
+}
+
+TEST_CASE("emplace throw")
+{
+	static unsigned counter = 3;
+	struct X
+	{
+		int x;
+
+		X(int x) : x(x)
+		{
+			if(!counter--)
+				throw TestException();
+		}
+	};
+
+	bool reached = false;
+
+	FixedList<X, 9> l {3, 4, 5};
+	try
+	{
+		l.emplace(l.begin(), 999);
+	}
+	catch(TestException)
+	{
+		reached = true;
+
+		array arr {3, 4, 5};
+		auto  i = l.begin();
+		for(int n : arr)
+			REQUIRE(i++->x == n);
+	}
+	REQUIRE(reached);
+}
+
+TEST_CASE("try_emplace")
+{
+	FixedList<string, 5> l {"AAA", "BBB", "CCC", "DDD", "EEE"};
+
+	auto it = l.try_emplace(l.begin() + 1, "XXX");
+	REQUIRE(it == l.end());
+}
+
+TEST_CASE("emplace_back")
+{
+	FixedList<string, 5> l {"AAA", "BBB", "CCC", "DDD"};
+
+	auto& elem = l.emplace_back("EEE");
+	REQUIRE(elem == "EEE");
+	REQUIRE(l[4] == "EEE");
+	REQUIRE(l.size() == 5);
+}
+
+TEST_CASE("emplace_back throw")
+{
+	struct X
+	{
+		int x = 3;
+
+		X() = default;
+
+		X(int)
+		{
+			throw TestException();
+		}
+	};
+
+	bool reached = false;
+
+	FixedList<X, 9> l(5);
+	try
+	{
+		l.emplace_back(-1);
+	}
+	catch(TestException)
+	{
+		reached = true;
+
+		array arr {3, 3, 3, 3, 3};
+		auto  i = arr.begin();
+		for(X n : l)
+			REQUIRE(*i++ == n.x);
+		REQUIRE(l.size() == 5);
+	}
+	REQUIRE(reached);
+}
+
+TEST_CASE("try_emplace_back")
+{
+	FixedList<string, 5> l {"AAA", "BBB", "CCC", "DDD", "EEE"};
+
+	auto it = l.try_emplace_back("XXX");
+	REQUIRE(!it);
+}
+
+TEST_CASE("pop_back")
+{
+	FixedList<string, 5> l {"AAA", "BBB", "CCC", "DDD", "EEE"};
+
+	l.pop_back();
+	REQUIRE(l.size() == 4);
+	REQUIRE(l[0] == "AAA");
+	REQUIRE(l[1] == "BBB");
+	REQUIRE(l[2] == "CCC");
+	REQUIRE(l[3] == "DDD");
+}
+
+TEST_CASE("try_pop_back")
+{
+	FixedList<string, 5> l {"AAA", "BBB", "CCC", "DDD", "EEE"};
+
+	REQUIRE(l.try_pop_back());
+	REQUIRE(l.try_pop_back());
+	REQUIRE(l.try_pop_back());
+	REQUIRE(l.try_pop_back());
+	REQUIRE(l.try_pop_back());
+	REQUIRE(!l.try_pop_back());
+}
+
+TEST_CASE("erase(pos)")
+{
+	FixedList<int, 10> l {2, 3, 4, 5, 6, 7, 8, 9};
+
+	auto it = l.erase(l.begin() + 2);
+	REQUIRE(*it == 5);
+	REQUIRE(l[1] == 3);
+	REQUIRE(l[2] == 5);
 }
 
 TEST_CASE("erase(first,last)")
 {
 	FixedList<int, 10> l {2, 3, 4, 5, 6, 7, 8, 9};
-	l.erase(l.begin() + 2, l.end());
+
+	auto it = l.erase(l.begin() + 2, l.end());
+
 	vector<int> v {2, 3};
 	REQUIRE(l == v);
+	REQUIRE(it == l.end());
+}
+
+TEST_CASE("clear")
+{
+	static unsigned counter = 4;
+	struct X
+	{
+		~X()
+		{
+			--counter;
+		}
+	};
+	FixedList<X, 5> l(4);
+
+	l.clear();
+
+	REQUIRE(l.empty());
+	REQUIRE(counter == 0);
 }

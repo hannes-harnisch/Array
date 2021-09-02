@@ -602,27 +602,15 @@ namespace hh
 			return *push_unchecked(std::forward<Ts>(ts)...);
 		}
 
-		// Appends a new element constructed from the specified arguments and returns the end iterator if the container is full,
-		// otherwise an iterator to the new element. The container remains unaffected if an exception is thrown.
+		// Appends a new element constructed from the specified arguments and returns nullptr if the container is full,
+		// otherwise a pointer to the new element. The container remains unaffected if an exception is thrown.
 		template<typename... Ts>
-		[[nodiscard]] iterator try_emplace_back(Ts&&... ts) noexcept(std::is_nothrow_constructible_v<T, Ts...>)
+		[[nodiscard]] T* try_emplace_back(Ts&&... ts) noexcept(std::is_nothrow_constructible_v<T, Ts...>)
 		{
 			if(elem_count == Capacity)
-				return end();
+				return nullptr;
 
-			return make_iterator(this, push_unchecked(std::forward<Ts>(ts)...));
-		}
-
-		// Appends a new element copied from the specified value. The container remains unaffected if an exception is thrown.
-		void push_back(T const& value) noexcept(std::is_nothrow_copy_constructible_v<T>)
-		{
-			emplace_back(value);
-		}
-
-		// Appends a new element moved from the specified value. The container remains unaffected if an exception is thrown.
-		void push_back(T&& value) noexcept(std::is_nothrow_move_constructible_v<T>)
-		{
-			emplace_back(std::move(value));
+			return push_unchecked(std::forward<Ts>(ts)...);
 		}
 
 		// Removes the last element from the container. If the container is empty, an assert occurs when DEBUG is defined,
@@ -648,10 +636,11 @@ namespace hh
 		{
 			HH_ASSERT(pos >= begin() && pos < end(), "Cannot erase with an invalid iterator.");
 
-			std::destroy_at(pos.pos);
-			move_left_unchecked(pos.pos, end().pos, pos.pos);
+			auto pos_ptr = std::to_address(pos);
+			std::destroy_at(pos_ptr);
+			move_left_unchecked(pos_ptr + 1, std::to_address(end()), pos_ptr);
 			--elem_count;
-			return pos;
+			return make_iterator(this, pos_ptr);
 		}
 
 		// Removes all elements in the specified range and returns an iterator to the element that came after the last removed
@@ -661,9 +650,10 @@ namespace hh
 			HH_ASSERT(first <= last && first >= begin() && last <= end(), "Cannot erase an invalid range.");
 
 			std::destroy(first, last);
-			move_left_unchecked(last.pos, end().pos, first.pos);
+			auto first_ptr = std::to_address(first);
+			move_left_unchecked(std::to_address(last), std::to_address(end()), first_ptr);
 			elem_count -= static_cast<count_type>(last - first);
-			return first;
+			return make_iterator(this, first_ptr);
 		}
 
 		// Removes all elements from the container.
