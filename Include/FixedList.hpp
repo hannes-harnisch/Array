@@ -8,7 +8,6 @@
 #include <iterator>
 #include <limits>
 #include <memory>
-#include <new>
 #include <stdexcept>
 #include <type_traits>
 #include <utility>
@@ -246,14 +245,20 @@ namespace hh
 		}
 
 		// Creates a fixed list filled with the elements from the range between first and last (exclusive).
-		template<std::input_iterator It>
-		FixedList(It first,
-				  It last) noexcept(std::is_nothrow_constructible_v<T, typename std::iterator_traits<It>::reference>) :
-			elem_count(static_cast<count_type>(std::distance(first, last)))
+		template<std::forward_iterator It>
+		FixedList(It first, It last) : elem_count(static_cast<count_type>(std::distance(first, last)))
 		{
 			HH_ASSERT(std::distance(first, last) <= Capacity, "Size of range exceeded capacity.");
 
 			std::uninitialized_copy(first, last, begin());
+		}
+
+		// Creates a fixed list filled with the elements from the range between first and last (exclusive).
+		template<std::input_iterator It> FixedList(It first, It last) : elem_count(static_cast<count_type>(Capacity))
+		{
+			auto it = std::uninitialized_copy(first, last, begin());
+
+			elem_count = static_cast<count_type>(it - begin());
 		}
 
 		// Creates a fixed list from an initializer list.
@@ -443,9 +448,7 @@ namespace hh
 		// Replaces all elements in the container with the elements from the range between first and last (exclusive). The
 		// container remains empty if an exception is thrown during element construction. If the size of the range exceeds the
 		// capacity, an assert occurs when DEBUG is defined, otherwise the behavior is undefined.
-		template<std::input_iterator It>
-		void assign(It first,
-					It last) noexcept(std::is_nothrow_constructible_v<T, typename std::iterator_traits<It>::reference>)
+		template<std::forward_iterator It> It assign(It first, It last)
 		{
 			auto dist = std::distance(first, last);
 			HH_ASSERT(dist <= Capacity, "List does not have enough capacity.");
@@ -455,10 +458,33 @@ namespace hh
 			try
 			{
 				std::uninitialized_copy(first, last, begin());
+				return last;
 			}
 			catch(...)
 			{
 				elem_count = 0;
+				throw;
+			}
+		}
+
+		// Replaces all elements in the container with the elements from the range between first and last (exclusive). The
+		// container remains empty if an exception is thrown during element construction. If the size of the range exceeds the
+		// capacity, an assert occurs when DEBUG is defined, otherwise the behavior is undefined.
+		template<std::input_iterator It> It assign(It first, It last)
+		{
+			clear();
+			try
+			{
+				while(first != last)
+				{
+					emplace_back(*first);
+					++first;
+				}
+				return first;
+			}
+			catch(...)
+			{
+				clear();
 				throw;
 			}
 		}
@@ -519,11 +545,7 @@ namespace hh
 		// == last, otherwise an iterator to the first inserted element. The container remains unaffected if an exception is
 		// thrown during element construction. If the container is out of capacity, an assert occurs when DEBUG is defined,
 		// otherwise the behavior is undefined.
-		template<std::input_iterator It>
-		iterator insert(iterator pos,
-						It		 first,
-						It		 last) noexcept(std::is_nothrow_move_constructible_v<T>&&
-											  std::is_nothrow_constructible_v<T, typename std::iterator_traits<It>::reference>)
+		template<std::forward_iterator It> iterator insert(iterator pos, It first, It last)
 		{
 			auto dist = std::distance(first, last);
 			HH_ASSERT(elem_count + dist <= Capacity, "List is out of capacity.");
@@ -531,13 +553,40 @@ namespace hh
 			return insert_range_unchecked(pos, first, dist);
 		}
 
+		// Inserts elements from the range between first and last (exclusive) before the element at pos and returns pos if first
+		// == last, otherwise an iterator to the first inserted element. The container remains unaffected if an exception is
+		// thrown during element construction. If the container is out of capacity, an assert occurs when DEBUG is defined,
+		// otherwise the behavior is undefined.
+		template<std::input_iterator It> iterator insert(iterator pos, It first, It last)
+		{
+			auto pos_ptr = std::to_address(pos);
+			try
+			{
+				while(first != last)
+				{
+					auto end_ptr = std::to_address(end());
+					move_right_unchecked(pos_ptr, end_ptr, end_ptr + 1);
+
+					std::construct_at(pos_ptr++, *first);
+					++first;
+					++elem_count;
+				}
+				return make_iterator(this, std::to_address(pos));
+			}
+			catch(...)
+			{
+				auto orig_pos_ptr = std::to_address(pos);
+				std::destroy(orig_pos_ptr, pos_ptr);
+				move_left_unchecked(pos_ptr, std::to_address(end()), orig_pos_ptr);
+				elem_count = static_cast<count_type>(pos_ptr - orig_pos_ptr);
+				throw;
+			}
+		}
+
 		// Inserts elements from the range between first and last (exclusive) before the element at pos and returns the end
 		// iterator if the container is full, otherwise pos if first == last, otherwise an iterator to the first inserted
 		// element. The container remains unaffected if an exception is thrown during element construction.
-		template<std::input_iterator It>
-		[[nodiscard]] iterator try_insert(iterator pos, It first, It last) noexcept(
-			std::is_nothrow_move_constructible_v<T>&&
-				std::is_nothrow_constructible_v<T, typename std::iterator_traits<It>::reference>)
+		template<std::forward_iterator It> [[nodiscard]] iterator try_insert(iterator pos, It first, It last)
 		{
 			auto dist = std::distance(first, last);
 
@@ -545,6 +594,38 @@ namespace hh
 				return end();
 
 			return insert_range_unchecked(pos, first, dist);
+		}
+
+		// Inserts elements from the range between first and last (exclusive) before the element at pos and returns the end
+		// iterator if the container is full, otherwise pos if first == last, otherwise an iterator to the first inserted
+		// element. The container remains unaffected if an exception is thrown during element construction.
+		template<std::input_iterator It> [[nodiscard]] iterator try_insert(iterator pos, It first, It last)
+		{
+			auto pos_ptr = std::to_address(pos);
+			try
+			{
+				while(first != last)
+				{
+					if(elem_count == Capacity)
+						return end();
+
+					auto end_ptr = std::to_address(end());
+					move_right_unchecked(pos_ptr, end_ptr, end_ptr + 1);
+
+					std::construct_at(pos_ptr++, *first);
+					++first;
+					++elem_count;
+				}
+				return make_iterator(this, std::to_address(pos));
+			}
+			catch(...)
+			{
+				auto orig_pos_ptr = std::to_address(pos);
+				std::destroy(orig_pos_ptr, pos_ptr);
+				move_left_unchecked(pos_ptr, std::to_address(end()), orig_pos_ptr);
+				elem_count = static_cast<count_type>(pos_ptr - orig_pos_ptr);
+				throw;
+			}
 		}
 
 		// Inserts elements from the initializer list before the element at pos and returns pos if the initializer list is
@@ -865,7 +946,7 @@ namespace hh
 			}
 		}
 
-		template<std::input_iterator It>
+		template<std::forward_iterator It>
 		iterator insert_range_unchecked(iterator pos, It first, typename std::iterator_traits<It>::difference_type const dist)
 		{
 			auto pos_ptr = std::to_address(pos);

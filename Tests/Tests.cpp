@@ -61,7 +61,7 @@ TEST_CASE("ctor(count,value)")
 		REQUIRE(s == atla);
 }
 
-TEST_CASE("ctor(first,last)")
+TEST_CASE("ctor(first,last) forward")
 {
 	vector<string> v {"E", "D", "C", "B", "A"};
 
@@ -73,7 +73,10 @@ TEST_CASE("ctor(first,last)")
 	REQUIRE(l[2] == "C");
 	REQUIRE(l[3] == "B");
 	REQUIRE(l[4] == "A");
+}
 
+TEST_CASE("ctor(first,last) input")
+{
 	static unsigned counter = 8;
 	struct I
 	{
@@ -456,7 +459,7 @@ TEST_CASE("assign(count,value) throw")
 	REQUIRE(reached);
 }
 
-TEST_CASE("assign(first,last)")
+TEST_CASE("assign(first,last) forward")
 {
 	FixedList<string, 7> l {"X", "Y", "Z"};
 	REQUIRE(l[0] == "X");
@@ -473,7 +476,7 @@ TEST_CASE("assign(first,last)")
 		REQUIRE(s == *vb++);
 }
 
-TEST_CASE("assign(first,last) throw")
+TEST_CASE("assign(first,last) forward throw")
 {
 	static unsigned counter = 2;
 	struct X
@@ -496,6 +499,72 @@ TEST_CASE("assign(first,last) throw")
 	try
 	{
 		l.assign(l2.begin(), l2.end());
+	}
+	catch(TestException)
+	{
+		reached = true;
+		REQUIRE(l.empty());
+	}
+	REQUIRE(reached);
+}
+
+TEST_CASE("assign(first,last) input")
+{
+	vector<unique_ptr<string>> v;
+	v.emplace_back(make_unique<string>("A"));
+	v.emplace_back(make_unique<string>("B"));
+	v.emplace_back(make_unique<string>("C"));
+	v.emplace_back(make_unique<string>("D"));
+
+	auto move_begin = make_move_iterator(v.begin() + 1);
+	auto move_end	= make_move_iterator(v.end());
+
+	FixedList<unique_ptr<string>, 7> l;
+	l.emplace_back(make_unique<string>("X"));
+	l.emplace_back(make_unique<string>("Y"));
+	l.emplace_back(make_unique<string>("Z"));
+
+	l.assign(move_begin, move_end);
+
+	REQUIRE(l.size() == 3);
+	REQUIRE(*l[0] == "B");
+	REQUIRE(*l[1] == "C");
+	REQUIRE(*l[2] == "D");
+}
+
+TEST_CASE("assign(first,last) input throw")
+{
+	static unsigned counter = 8;
+	struct X
+	{
+		X() = default;
+
+		X(X&&)
+		{
+			if(!counter--)
+				throw TestException();
+		}
+	};
+
+	vector<X> v;
+	v.emplace_back();
+	v.emplace_back();
+	v.emplace_back();
+	v.emplace_back();
+
+	auto move_begin = make_move_iterator(v.begin() + 1);
+	auto move_end	= make_move_iterator(v.end());
+
+	FixedList<X, 7> l;
+	l.emplace_back();
+	l.emplace_back();
+	l.emplace_back();
+	REQUIRE(l.size() == 3);
+
+	bool reached = false;
+	try
+	{
+		l.assign(move_begin, move_end);
 	}
 	catch(TestException)
 	{
@@ -670,7 +739,7 @@ TEST_CASE("try_insert(pos,count,value)")
 	REQUIRE(it == l.end());
 }
 
-TEST_CASE("insert(pos,first,last)")
+TEST_CASE("insert(pos,first,last) forward")
 {
 	FixedList<string, 15> l;
 	l.emplace_back("AAA");
@@ -686,7 +755,7 @@ TEST_CASE("insert(pos,first,last)")
 	REQUIRE(*it == "A");
 }
 
-TEST_CASE("insert(pos,first,last) throw")
+TEST_CASE("insert(pos,first,last) forward throw")
 {
 	static unsigned counter = 3;
 	struct X
@@ -725,7 +794,89 @@ TEST_CASE("insert(pos,first,last) throw")
 	REQUIRE(reached);
 }
 
-TEST_CASE("try_insert(pos,first,last)")
+TEST_CASE("try_insert(pos,first,last) forward")
+{
+	FixedList<string, 8> l {"A", "E", "F", "G", "H", "I"};
+
+	vector<string> v {"A", "B", "C", "D", "E", "F"};
+
+	auto it = l.try_insert(l.begin() + 1, v.begin() + 1, v.end() - 2);
+	REQUIRE(it == l.end());
+}
+
+TEST_CASE("insert(pos,first,last) input")
+{
+	vector<unique_ptr<string>> v;
+	v.emplace_back(make_unique<string>("B"));
+	v.emplace_back(make_unique<string>("C"));
+	v.emplace_back(make_unique<string>("D"));
+	v.emplace_back(make_unique<string>("E"));
+
+	auto move_begin = make_move_iterator(v.begin() + 1);
+	auto move_end	= make_move_iterator(v.end());
+
+	FixedList<unique_ptr<string>, 7> l;
+	l.emplace_back(make_unique<string>("A"));
+	l.emplace_back(make_unique<string>("B"));
+	l.emplace_back(make_unique<string>("F"));
+
+	l.insert(l.begin() + 2, move_begin, move_end);
+
+	REQUIRE(l.size() == 6);
+	REQUIRE(*l[0] == "A");
+	REQUIRE(*l[1] == "B");
+	REQUIRE(*l[2] == "C");
+	REQUIRE(*l[3] == "D");
+	REQUIRE(*l[4] == "E");
+	REQUIRE(*l[5] == "F");
+}
+
+TEST_CASE("insert(pos,first,last) input throw") // TODO:
+{
+	static int counter = 4;
+	struct X
+	{
+		string s;
+
+		X() = default;
+
+		X(string s) : s(s)
+		{
+			if(!counter--)
+				throw TestException();
+		}
+	};
+
+	vector<X> v(4);
+	v.emplace_back(1);
+	v.emplace_back(2);
+	v.emplace_back(3);
+	v.emplace_back(4);
+
+	istream_iterator<X> it(cin);
+
+	FixedList<X, 7> l;
+	l.emplace_back(1);
+	l.emplace_back(2);
+	l.emplace_back(3);
+
+	bool reached = false;
+	try
+	{
+		// l.insert(l.begin() + 2, move_begin, move_end);
+	}
+	catch(TestException)
+	{
+		reached = true;
+		REQUIRE(l.size() == 3);
+		REQUIRE(l[0].n == 1);
+		REQUIRE(l[1].n == 2);
+		REQUIRE(l[2].n == 3);
+	}
+	REQUIRE(reached);
+}
+
+TEST_CASE("try_insert(pos,first,last) input") // TODO:
 {
 	FixedList<string, 8> l {"A", "E", "F", "G", "H", "I"};
 
