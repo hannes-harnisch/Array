@@ -8,6 +8,7 @@
 #include <iterator>
 #include <limits>
 #include <memory>
+#include <new>
 #include <stdexcept>
 #include <type_traits>
 #include <utility>
@@ -425,6 +426,42 @@ namespace hh
 			return (*this)[elem_count - 1];
 		}
 
+		// Returns a pointer to the first element of the array.
+		T* data() noexcept
+		{
+			return std::launder(reinterpret_cast<T*>(storage));
+		}
+
+		// Returns a pointer to the first element of the array.
+		T const* data() const noexcept
+		{
+			return std::launder(reinterpret_cast<T const*>(storage));
+		}
+
+		// Indicates whether the container is empty.
+		[[nodiscard]] bool empty() const noexcept
+		{
+			return !elem_count;
+		}
+
+		// Indicates whether the container is out of capacity.
+		bool full() const noexcept
+		{
+			return elem_count == Capacity;
+		}
+
+		// Returns the amount of elements in the container.
+		size_t size() const noexcept
+		{
+			return elem_count;
+		}
+
+		// Returns the amount of elements in the container as the type that the container uses internally to track the count.
+		count_type count() const noexcept
+		{
+			return elem_count;
+		}
+
 		// Replaces all elements in the container with count instances of the specified value. The container remains empty if an
 		// exception is thrown during element construction. If the specified amount exceeds the capacity, an assert occurs when
 		// DEBUG is defined, otherwise the behavior is undefined.
@@ -507,7 +544,7 @@ namespace hh
 			return emplace(pos, std::forward<U>(value));
 		}
 
-		// Inserts the specified value before the element at pos and returns the end iterator if the container is full,
+		// Tries to insert the specified value before the element at pos and returns the end iterator if the container is full,
 		// otherwise an iterator to the inserted element. The container remains unaffected if an exception is thrown during
 		// construction of the element.
 		template<typename U>
@@ -529,9 +566,9 @@ namespace hh
 			return insert_count_unchecked(pos, count, value);
 		}
 
-		// Inserts count instances of the specified value before the element at pos and returns the end iterator if the
-		// container is full, otherwise pos if count is zero, otherwise an iterator to the first inserted element. The container
-		// remains unaffected if an exception is thrown during element construction.
+		// Tries to insert count instances of the specified value before the element at pos and returns the end iterator if the
+		// container would run out of capacity, otherwise pos if count is zero, otherwise an iterator to the first inserted
+		// element. The container remains unaffected if an exception is thrown during element construction.
 		[[nodiscard]] iterator try_insert(iterator pos, size_t count, T const& value) noexcept(
 			std::is_nothrow_move_constructible_v<T>&& std::is_nothrow_copy_constructible_v<T>)
 		{
@@ -567,9 +604,9 @@ namespace hh
 					auto end_ptr = std::to_address(end());
 					move_right_unchecked(pos_ptr, end_ptr, end_ptr + 1);
 
+					++elem_count;
 					std::construct_at(pos_ptr++, *first);
 					++first;
-					++elem_count;
 				}
 				return make_iterator(this, std::to_address(pos));
 			}
@@ -578,14 +615,14 @@ namespace hh
 				auto orig_pos_ptr = std::to_address(pos);
 				std::destroy(orig_pos_ptr, pos_ptr);
 				move_left_unchecked(pos_ptr, std::to_address(end()), orig_pos_ptr);
-				elem_count = static_cast<count_type>(pos_ptr - orig_pos_ptr);
+				elem_count -= static_cast<count_type>(pos_ptr - orig_pos_ptr);
 				throw;
 			}
 		}
 
-		// Inserts elements from the range between first and last (exclusive) before the element at pos and returns the end
-		// iterator if the container is full, otherwise pos if first == last, otherwise an iterator to the first inserted
-		// element. The container remains unaffected if an exception is thrown during element construction.
+		// Tries to insert elements from the range between first and last (exclusive) before the element at pos and returns the
+		// end iterator if the container would run out of capacity, otherwise pos if first == last, otherwise an iterator to the
+		// first inserted element. The container remains unaffected if an exception is thrown during element construction.
 		template<std::forward_iterator It> [[nodiscard]] iterator try_insert(iterator pos, It first, It last)
 		{
 			auto dist = std::distance(first, last);
@@ -596,9 +633,9 @@ namespace hh
 			return insert_range_unchecked(pos, first, dist);
 		}
 
-		// Inserts elements from the range between first and last (exclusive) before the element at pos and returns the end
-		// iterator if the container is full, otherwise pos if first == last, otherwise an iterator to the first inserted
-		// element. The container remains unaffected if an exception is thrown during element construction.
+		// Tries to insert elements from the range between first and last (exclusive) before the element at pos and returns the
+		// end iterator if the container would run out of capacity, otherwise pos if first == last, otherwise an iterator to the
+		// first inserted element. The container remains unaffected if an exception is thrown during element construction.
 		template<std::input_iterator It> [[nodiscard]] iterator try_insert(iterator pos, It first, It last)
 		{
 			auto pos_ptr = std::to_address(pos);
@@ -607,14 +644,17 @@ namespace hh
 				while(first != last)
 				{
 					if(elem_count == Capacity)
+					{
+						erase(pos, make_iterator(this, pos_ptr));
 						return end();
+					}
 
 					auto end_ptr = std::to_address(end());
 					move_right_unchecked(pos_ptr, end_ptr, end_ptr + 1);
 
+					++elem_count;
 					std::construct_at(pos_ptr++, *first);
 					++first;
-					++elem_count;
 				}
 				return make_iterator(this, std::to_address(pos));
 			}
@@ -623,7 +663,7 @@ namespace hh
 				auto orig_pos_ptr = std::to_address(pos);
 				std::destroy(orig_pos_ptr, pos_ptr);
 				move_left_unchecked(pos_ptr, std::to_address(end()), orig_pos_ptr);
-				elem_count = static_cast<count_type>(pos_ptr - orig_pos_ptr);
+				elem_count -= static_cast<count_type>(pos_ptr - orig_pos_ptr);
 				throw;
 			}
 		}
@@ -639,9 +679,9 @@ namespace hh
 			return insert(pos, init.begin(), init.end());
 		}
 
-		// Inserts elements from the initializer list before the element at pos and returns the end iterator if the container is
-		// full, otherwise pos if the initializer list is empty, otherwise an iterator to the first inserted element. The
-		// container remains unaffected if an exception is thrown during element construction.
+		// Tries to insert elements from the initializer list before the element at pos and returns the end iterator if the
+		// container would run out of capacity, otherwise pos if the initializer list is empty, otherwise an iterator to the
+		// first inserted element. The container remains unaffected if an exception is thrown during element construction.
 		template<typename U>
 		[[nodiscard]] iterator try_insert(iterator pos, std::initializer_list<U> init) noexcept(
 			std::is_nothrow_move_constructible_v<T>&& std::is_nothrow_constructible_v<T, U const&>)
@@ -661,9 +701,9 @@ namespace hh
 			return make_iterator(this, emplace_unchecked(pos, std::forward<Ts>(ts)...));
 		}
 
-		// Constructs a new element from the specified arguments before the element at pos and returns the end iterator if the
-		// container is full, otherwise an iterator to the new element. The container remains unaffected if an exception is
-		// thrown during element construction.
+		// Tries to construct a new element from the specified arguments before the element at pos and returns the end iterator
+		// if the container is full, otherwise an iterator to the new element. The container remains unaffected if an exception
+		// is thrown during element construction.
 		template<typename... Ts>
 		[[nodiscard]] iterator try_emplace(iterator pos, Ts&&... ts) noexcept(
 			std::is_nothrow_move_constructible_v<T>&& std::is_nothrow_constructible_v<T, Ts...>)
@@ -730,10 +770,12 @@ namespace hh
 		{
 			HH_ASSERT(first <= last && first >= begin() && last <= end(), "Cannot erase an invalid range.");
 
-			std::destroy(first, last);
 			auto first_ptr = std::to_address(first);
-			move_left_unchecked(std::to_address(last), std::to_address(end()), first_ptr);
-			elem_count -= static_cast<count_type>(last - first);
+			auto last_ptr  = std::to_address(last);
+			std::destroy(first_ptr, last_ptr);
+
+			move_left_unchecked(last_ptr, std::to_address(end()), first_ptr);
+			elem_count -= static_cast<count_type>(last_ptr - first_ptr);
 			return make_iterator(this, first_ptr);
 		}
 
@@ -748,42 +790,6 @@ namespace hh
 		void swap(FixedList& that) noexcept(std::is_nothrow_swappable_v<T>)
 		{
 			std::swap(*this, that);
-		}
-
-		// Indicates whether the container is empty.
-		[[nodiscard]] bool empty() const noexcept
-		{
-			return !elem_count;
-		}
-
-		// Indicates whether the container is out of capacity.
-		bool full() const noexcept
-		{
-			return elem_count == Capacity;
-		}
-
-		// Returns the amount of elements in the container.
-		size_t size() const noexcept
-		{
-			return elem_count;
-		}
-
-		// Returns the amount of elements in the container as the type that the container uses internally to track the count.
-		count_type count() const noexcept
-		{
-			return elem_count;
-		}
-
-		// Returns a pointer to the first element of the array.
-		T* data() noexcept
-		{
-			return reinterpret_cast<T*>(storage);
-		}
-
-		// Returns a pointer to the first element of the array.
-		T const* data() const noexcept
-		{
-			return reinterpret_cast<T const*>(storage);
 		}
 
 		iterator begin() noexcept

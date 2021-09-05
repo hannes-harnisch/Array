@@ -820,9 +820,10 @@ TEST_CASE("insert(pos,first,last) input")
 	l.emplace_back(make_unique<string>("B"));
 	l.emplace_back(make_unique<string>("F"));
 
-	l.insert(l.begin() + 2, move_begin, move_end);
+	auto it = l.insert(l.begin() + 2, move_begin, move_end);
 
 	REQUIRE(l.size() == 6);
+	REQUIRE(**it == "C");
 	REQUIRE(*l[0] == "A");
 	REQUIRE(*l[1] == "B");
 	REQUIRE(*l[2] == "C");
@@ -831,59 +832,75 @@ TEST_CASE("insert(pos,first,last) input")
 	REQUIRE(*l[5] == "F");
 }
 
-TEST_CASE("insert(pos,first,last) input throw") // TODO:
+struct InputThrowTest
 {
-	static int counter = 4;
-	struct X
+	static inline unsigned counter = 4;
+
+	string s;
+
+	friend istream& operator>>(istream& stream, InputThrowTest& val)
 	{
-		string s;
+		if(!counter--)
+			throw TestException();
 
-		X() = default;
+		return stream >> val.s;
+	}
+};
 
-		X(string s) : s(s)
-		{
-			if(!counter--)
-				throw TestException();
-		}
-	};
+TEST_CASE("insert(pos,first,last) input throw")
+{
+	istringstream stream("1 2 3 4 5 6");
 
-	vector<X> v(4);
-	v.emplace_back(1);
-	v.emplace_back(2);
-	v.emplace_back(3);
-	v.emplace_back(4);
+	istream_iterator<InputThrowTest> it(stream);
 
-	istream_iterator<X> it(cin);
-
-	FixedList<X, 7> l;
-	l.emplace_back(1);
-	l.emplace_back(2);
-	l.emplace_back(3);
+	FixedList<InputThrowTest, 7> l;
+	l.emplace_back("1");
+	l.emplace_back("2");
+	l.emplace_back("3");
 
 	bool reached = false;
 	try
 	{
-		// l.insert(l.begin() + 2, move_begin, move_end);
+		l.insert(l.begin() + 2, it, {});
 	}
 	catch(TestException)
 	{
 		reached = true;
 		REQUIRE(l.size() == 3);
-		REQUIRE(l[0].n == 1);
-		REQUIRE(l[1].n == 2);
-		REQUIRE(l[2].n == 3);
+		REQUIRE(l[0].s == "1");
+		REQUIRE(l[1].s == "2");
+		REQUIRE(l[2].s == "3");
 	}
 	REQUIRE(reached);
 }
 
-TEST_CASE("try_insert(pos,first,last) input") // TODO:
+struct InputTest
 {
-	FixedList<string, 8> l {"A", "E", "F", "G", "H", "I"};
+	string s;
 
-	vector<string> v {"A", "B", "C", "D", "E", "F"};
+	friend istream& operator>>(istream& stream, InputTest& val)
+	{
+		return stream >> val.s;
+	}
+};
 
-	auto it = l.try_insert(l.begin() + 1, v.begin() + 1, v.end() - 2);
+TEST_CASE("try_insert(pos,first,last) input")
+{
+	FixedList<InputTest, 8> l {"A", "B", "C", "D", "E", "F"};
+
+	istringstream stream("1 2 3 4 5 6");
+
+	istream_iterator<InputTest> stream_it(stream);
+
+	auto it = l.try_insert(l.begin() + 1, stream_it, {});
 	REQUIRE(it == l.end());
+	REQUIRE(l.size() == 6);
+	REQUIRE(l[0].s == "A");
+	REQUIRE(l[1].s == "B");
+	REQUIRE(l[2].s == "C");
+	REQUIRE(l[3].s == "D");
+	REQUIRE(l[4].s == "E");
+	REQUIRE(l[5].s == "F");
 }
 
 TEST_CASE("insert(pos,init)")
