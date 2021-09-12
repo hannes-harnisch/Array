@@ -1,5 +1,4 @@
-#ifndef HH_STATIC_LIST
-#define HH_STATIC_LIST
+#pragma once
 
 #include <algorithm>
 #include <compare>
@@ -1004,5 +1003,3 @@ namespace std
 		}
 	};
 }
-
-#endif /* HH_STATIC_LIST */
