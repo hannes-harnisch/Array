@@ -1,5 +1,4 @@
-#ifndef HH_ARRAY
-#define HH_ARRAY
+#pragma once
 
 #include <algorithm>
 #include <iterator>
@@ -558,5 +557,3 @@ namespace std
 		}
 	};
 }
-
-#endif /* HH_ARRAY */
