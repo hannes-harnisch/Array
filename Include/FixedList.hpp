@@ -24,175 +24,162 @@
 
 namespace hh
 {
-	template<typename V> class FixedListIterator
+	template<typename FixedList, bool Const> class FixedListIterator
 	{
-		template<typename> friend class FixedListIterator;
-		template<typename, size_t> friend class FixedList;
+		friend FixedList;
+		template<typename, bool> friend class FixedListIterator;
 		template<typename> friend struct std::pointer_traits;
 
 	public:
 		using iterator_concept = std::contiguous_iterator_tag;
-		using value_type	   = V;
-		using pointer		   = V*;
-		using reference		   = V&;
-		using difference_type  = std::ptrdiff_t;
+		using pointer		   = std::conditional_t<Const, typename FixedList::const_pointer, typename FixedList::pointer>;
+		using reference		   = std::conditional_t<Const, typename FixedList::const_reference, typename FixedList::reference>;
+		using value_type	   = typename FixedList::value_type;
+		using difference_type  = typename FixedList::difference_type;
 
 		FixedListIterator() = default;
 
-		operator FixedListIterator<V const>() const noexcept
+		operator FixedListIterator<FixedList, true>() const noexcept
 		{
-			return
-			{
-				pos,
 #if DEBUG
-					begin, end
+			return {ptr, list};
+#else
+			return {ptr};
 #endif
-			};
 		}
 
-		V& operator*() const noexcept
+		reference operator*() const noexcept
 		{
 			return *operator->();
 		}
 
-		V* operator->() const noexcept
+		pointer operator->() const noexcept
 		{
-			HH_ASSERT(begin <= pos && pos < end, "Tried to dereference value-initialized or end iterator.");
-			return pos;
+			HH_ASSERT(list->data() <= ptr && ptr < list->data() + list->size(),
+					  "Tried to dereference value-initialized or end iterator.");
+			return ptr;
 		}
 
-		template<typename U> bool operator==(FixedListIterator<U> that) const noexcept
+		template<bool Const2> bool operator==(FixedListIterator<FixedList, Const2> that) const noexcept
 		{
-			return pos == that.pos;
+			return ptr == that.ptr;
 		}
 
-		template<typename U> bool operator!=(FixedListIterator<U> that) const noexcept
+		template<bool Const2> bool operator!=(FixedListIterator<FixedList, Const2> that) const noexcept
 		{
-			return pos != that.pos;
+			return ptr != that.ptr;
 		}
 
-		template<typename U> bool operator<(FixedListIterator<U> that) const noexcept
+		template<bool Const2> bool operator<(FixedListIterator<FixedList, Const2> that) const noexcept
 		{
-			return pos < that.pos;
+			return ptr < that.ptr;
 		}
 
-		template<typename U> bool operator<=(FixedListIterator<U> that) const noexcept
+		template<bool Const2> bool operator<=(FixedListIterator<FixedList, Const2> that) const noexcept
 		{
-			return pos <= that.pos;
+			return ptr <= that.ptr;
 		}
 
-		template<typename U> bool operator>(FixedListIterator<U> that) const noexcept
+		template<bool Const2> bool operator>(FixedListIterator<FixedList, Const2> that) const noexcept
 		{
-			return pos > that.pos;
+			return ptr > that.ptr;
 		}
 
-		template<typename U> bool operator>=(FixedListIterator<U> that) const noexcept
+		template<bool Const2> bool operator>=(FixedListIterator<FixedList, Const2> that) const noexcept
 		{
-			return pos >= that.pos;
+			return ptr >= that.ptr;
 		}
 
-		template<typename U> std::strong_ordering operator<=>(FixedListIterator<U> that) const noexcept
+		template<bool Const2> std::strong_ordering operator<=>(FixedListIterator<FixedList, Const2> that) const noexcept
 		{
-			return pos <=> that.pos;
+			return ptr <=> that.ptr;
 		}
 
 		FixedListIterator& operator++() noexcept
 		{
-			increment_position(1);
-			return *this;
+			return *this += 1;
 		}
 
 		FixedListIterator operator++(int) noexcept
 		{
 			auto old = *this;
-			increment_position(1);
+			*this += 1;
 			return old;
 		}
 
 		FixedListIterator& operator--() noexcept
 		{
-			decrement_position(1);
-			return *this;
+			return *this -= 1;
 		}
 
 		FixedListIterator operator--(int) noexcept
 		{
 			auto old = *this;
-			decrement_position(1);
+			*this -= 1;
 			return old;
 		}
 
-		FixedListIterator& operator+=(ptrdiff_t offset) noexcept
+		FixedListIterator& operator+=(difference_type offset) noexcept
 		{
-			increment_position(offset);
+			HH_ASSERT(offset == 0 || ptr, "Cannot offset value-initialized iterator.");
+			HH_ASSERT(offset >= 0 || offset >= list->data() - ptr, "Cannot offset list iterator before begin.");
+			HH_ASSERT(offset <= 0 || offset <= list->data() + list->size() - ptr, "Cannot offset list iterator past end.");
+
+			ptr += offset;
 			return *this;
 		}
 
-		FixedListIterator operator+(ptrdiff_t offset) const noexcept
+		FixedListIterator operator+(difference_type offset) const noexcept
 		{
 			auto old = *this;
 			return old += offset;
 		}
 
-		friend FixedListIterator operator+(ptrdiff_t offset, FixedListIterator iterator) noexcept
+		friend FixedListIterator operator+(difference_type offset, FixedListIterator iterator) noexcept
 		{
 			return iterator + offset;
 		}
 
-		FixedListIterator& operator-=(ptrdiff_t offset) noexcept
+		FixedListIterator& operator-=(difference_type offset) noexcept
 		{
-			decrement_position(offset);
-			return *this;
+			return *this += -offset;
 		}
 
-		FixedListIterator operator-(ptrdiff_t offset) const noexcept
+		FixedListIterator operator-(difference_type offset) const noexcept
 		{
 			auto old = *this;
 			return old -= offset;
 		}
 
-		template<typename U> ptrdiff_t operator-(FixedListIterator<U> that) const noexcept
+		template<bool Const2> difference_type operator-(FixedListIterator<FixedList, Const2> that) const noexcept
 		{
-			return pos - that.pos;
+			return ptr - that.ptr;
 		}
 
-		V& operator[](ptrdiff_t offset) const noexcept
+		reference operator[](difference_type offset) const noexcept
 		{
 			return *(*this + offset);
 		}
 
 	private:
-		V* pos = {};
-#ifdef DEBUG
-		V* begin = {};
-		V* end	 = {};
+		pointer ptr = nullptr;
+#if DEBUG
+		FixedList const* list = nullptr;
 
-		FixedListIterator(V* pos, V* begin, V* end) noexcept : pos(pos), begin(begin), end(end)
+		FixedListIterator(pointer ptr, FixedList const* list) noexcept : ptr(ptr), list(list)
 		{}
 #else
-		FixedListIterator(V* pos) noexcept : pos(pos)
+		FixedListIterator(pointer ptr) noexcept : ptr(ptr)
 		{}
 #endif
-
-		void increment_position(ptrdiff_t offset) noexcept
-		{
-			HH_ASSERT(pos, "Cannot increment value-initialized iterator.");
-			HH_ASSERT(pos < end, "Cannot increment list iterator past end.");
-			pos += offset;
-		}
-
-		void decrement_position(ptrdiff_t offset) noexcept
-		{
-			HH_ASSERT(pos, "Cannot decrement value-initialized iterator.");
-			HH_ASSERT(begin < pos, "Cannot decrement list iterator before begin.");
-			pos -= offset;
-		}
 	};
 
 	// Dynamic array with compile-time fixed capacity. Uses no internal dynamic allocation.
 	template<typename T, size_t Capacity> class FixedList
 	{
 	public:
+		static_assert(!std::is_const_v<T>, "Const value types are not supported. Make the fixed list itself const instead.");
+
 		using value_type	  = T;
 		using reference		  = T&;
 		using const_reference = T const&;
@@ -208,8 +195,8 @@ namespace hh
 							   uint16_t,
 							   std::conditional_t<alignof(T) <= alignof(uint32_t), uint32_t, uint64_t>>>;
 
-		using iterator				 = FixedListIterator<T>;
-		using const_iterator		 = FixedListIterator<T const>;
+		using iterator				 = FixedListIterator<FixedList, false>;
+		using const_iterator		 = FixedListIterator<FixedList, true>;
 		using reverse_iterator		 = std::reverse_iterator<iterator>;
 		using const_reverse_iterator = std::reverse_iterator<const_iterator>;
 
@@ -881,9 +868,8 @@ namespace hh
 		static auto make_iterator([[maybe_unused]] S self, auto position) noexcept
 			-> std::conditional_t<std::is_const_v<std::remove_pointer_t<S>>, const_iterator, iterator>
 		{
-#ifdef DEBUG
-			auto data = self->data();
-			return {position, data, data + self->elem_count};
+#if DEBUG
+			return {position, self};
 #else
 			return {position};
 #endif
@@ -990,16 +976,31 @@ namespace hh
 
 namespace std
 {
-	template<typename T> struct pointer_traits<hh::FixedListIterator<T>>
+	template<typename FixedList> struct pointer_traits<hh::FixedListIterator<FixedList, true>>
 	{
-		using pointer		  = hh::FixedListIterator<T>;
+		using pointer		  = hh::FixedListIterator<FixedList, true>;
+		using element_type	  = typename pointer::value_type const;
+		using difference_type = typename pointer::difference_type;
+
+		[[nodiscard]] static constexpr element_type* to_address(pointer it) noexcept
+		{
+			HH_ASSERT(it.list->data() <= it.ptr && it.ptr <= it.list->data() + it.list->size(),
+					  "Iterator is not within a validly addressable range.");
+			return it.ptr;
+		}
+	};
+
+	template<typename FixedList> struct pointer_traits<hh::FixedListIterator<FixedList, false>>
+	{
+		using pointer		  = hh::FixedListIterator<FixedList, false>;
 		using element_type	  = typename pointer::value_type;
 		using difference_type = typename pointer::difference_type;
 
-		[[nodiscard]] static constexpr element_type* to_address(pointer iter) noexcept
+		[[nodiscard]] static constexpr element_type* to_address(pointer it) noexcept
 		{
-			HH_ASSERT(iter.begin <= iter.pos && iter.pos <= iter.end, "Iterator is not within a validly addressable range.");
-			return std::to_address(iter.pos);
+			HH_ASSERT(it.list->data() <= it.ptr && it.ptr <= it.list->data() + it.list->size(),
+					  "Iterator is not within a validly addressable range.");
+			return it.ptr;
 		}
 	};
 }
