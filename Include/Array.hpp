@@ -20,174 +20,154 @@
 
 namespace hh
 {
-	template<typename V> class ArrayIterator
+	template<typename Array, bool Const> class ArrayIterator
 	{
-		template<typename, typename> friend class Array;
-		template<typename> friend class ArrayIterator;
+		friend Array;
+		template<typename, bool> friend class ArrayIterator;
 		template<typename> friend struct std::pointer_traits;
 
 	public:
-#ifdef __cpp_lib_concepts
 		using iterator_concept = std::contiguous_iterator_tag;
-#endif
-		using iterator_category = std::random_access_iterator_tag;
-		using value_type		= V;
-		using pointer			= V*;
-		using reference			= V&;
-		using difference_type	= std::ptrdiff_t;
+		using pointer		   = std::conditional_t<Const, typename Array::const_pointer, typename Array::pointer>;
+		using reference		   = std::conditional_t<Const, typename Array::const_reference, typename Array::reference>;
+		using value_type	   = typename Array::value_type;
+		using difference_type  = typename Array::difference_type;
 
-		constexpr ArrayIterator() = default;
+		ArrayIterator() = default;
 
-		constexpr operator ArrayIterator<V const>() const noexcept
+		operator ArrayIterator<Array, true>() const noexcept
 		{
-			return
-			{
-				pos,
 #if DEBUG
-					begin, end,
+			return {ptr, array};
+#else
+			return {ptr};
 #endif
-			};
 		}
 
-		constexpr V& operator*() const noexcept
+		reference operator*() const noexcept
 		{
 			return *operator->();
 		}
 
-		constexpr V* operator->() const noexcept
+		pointer operator->() const noexcept
 		{
-			HH_ASSERT(pos, "Tried to dereference value-initialized iterator.");
-			return pos;
+			HH_ASSERT(array->data() <= ptr && ptr < array->data() + array->size(),
+					  "Tried to dereference value-initialized or end iterator.");
+			return ptr;
 		}
 
-		template<typename U> constexpr bool operator==(ArrayIterator<U> that) const noexcept
+		template<bool Const2> bool operator==(ArrayIterator<Array, Const2> that) const noexcept
 		{
-			return pos == that.pos;
+			return ptr == that.ptr;
 		}
 
-		template<typename U> constexpr bool operator!=(ArrayIterator<U> that) const noexcept
+		template<bool Const2> bool operator!=(ArrayIterator<Array, Const2> that) const noexcept
 		{
-			return pos != that.pos;
+			return ptr != that.ptr;
 		}
 
-		template<typename U> constexpr bool operator>(ArrayIterator<U> that) const noexcept
+		template<bool Const2> bool operator<(ArrayIterator<Array, Const2> that) const noexcept
 		{
-			return pos > that.pos;
+			return ptr < that.ptr;
 		}
 
-		template<typename U> constexpr bool operator>=(ArrayIterator<U> that) const noexcept
+		template<bool Const2> bool operator<=(ArrayIterator<Array, Const2> that) const noexcept
 		{
-			return pos >= that.pos;
+			return ptr <= that.ptr;
 		}
 
-		template<typename U> constexpr bool operator<(ArrayIterator<U> that) const noexcept
+		template<bool Const2> bool operator>(ArrayIterator<Array, Const2> that) const noexcept
 		{
-			return pos < that.pos;
+			return ptr > that.ptr;
 		}
 
-		template<typename U> constexpr bool operator<=(ArrayIterator<U> that) const noexcept
+		template<bool Const2> bool operator>=(ArrayIterator<Array, Const2> that) const noexcept
 		{
-			return pos <= that.pos;
+			return ptr >= that.ptr;
 		}
 
-#ifdef __cpp_lib_three_way_comparison
-		template<typename U> constexpr auto operator<=>(ArrayIterator<U> that) const noexcept
+		template<bool Const2> std::strong_ordering operator<=>(ArrayIterator<Array, Const2> that) const noexcept
 		{
-			return pos <=> that.pos;
-		}
-#endif
-
-		constexpr ArrayIterator& operator++() noexcept
-		{
-			incrementPosition(1);
-			return *this;
+			return ptr <=> that.ptr;
 		}
 
-		constexpr ArrayIterator operator++(int) noexcept
+		ArrayIterator& operator++() noexcept
+		{
+			return *this += 1;
+		}
+
+		ArrayIterator operator++(int) noexcept
 		{
 			auto old = *this;
-			incrementPosition(1);
+			*this += 1;
 			return old;
 		}
 
-		constexpr ArrayIterator& operator--() noexcept
+		ArrayIterator& operator--() noexcept
 		{
-			decrementPosition(1);
-			return *this;
+			return *this -= 1;
 		}
 
-		constexpr ArrayIterator operator--(int) noexcept
+		ArrayIterator operator--(int) noexcept
 		{
 			auto old = *this;
-			decrementPosition(1);
+			*this -= 1;
 			return old;
 		}
 
-		constexpr ArrayIterator& operator+=(difference_type offset) noexcept
+		ArrayIterator& operator+=(difference_type offset) noexcept
 		{
-			incrementPosition(offset);
+			HH_ASSERT(offset == 0 || ptr, "Cannot offset value-initialized iterator.");
+			HH_ASSERT(offset >= 0 || offset >= array->data() - ptr, "Cannot offset list iterator before begin.");
+			HH_ASSERT(offset <= 0 || offset <= array->data() + array->size() - ptr, "Cannot offset list iterator past end.");
+
+			ptr += offset;
 			return *this;
 		}
 
-		constexpr ArrayIterator operator+(difference_type offset) const noexcept
+		ArrayIterator operator+(difference_type offset) const noexcept
 		{
 			auto old = *this;
 			return old += offset;
 		}
 
-		friend constexpr ArrayIterator operator+(difference_type offset, ArrayIterator iterator) noexcept
+		friend ArrayIterator operator+(difference_type offset, ArrayIterator iterator) noexcept
 		{
 			return iterator + offset;
 		}
 
-		constexpr ArrayIterator& operator-=(difference_type offset) noexcept
+		ArrayIterator& operator-=(difference_type offset) noexcept
 		{
-			decrementPosition(offset);
-			return *this;
+			return *this += -offset;
 		}
 
-		constexpr ArrayIterator operator-(difference_type offset) const noexcept
+		ArrayIterator operator-(difference_type offset) const noexcept
 		{
 			auto old = *this;
 			return old -= offset;
 		}
 
-		template<typename U> constexpr difference_type operator-(ArrayIterator<U> that) const noexcept
+		template<bool Const2> difference_type operator-(ArrayIterator<Array, Const2> that) const noexcept
 		{
-			return pos - that.pos;
+			return ptr - that.ptr;
 		}
 
-		constexpr V& operator[](difference_type offset) const noexcept
+		reference operator[](difference_type offset) const noexcept
 		{
 			return *(*this + offset);
 		}
 
 	private:
-		V* pos = {};
+		pointer ptr = nullptr;
 #if DEBUG
-		V* begin = {};
-		V* end	 = {};
+		Array const* array = nullptr;
 
-		constexpr ArrayIterator(V* pos, V* begin, V* end) noexcept : pos(pos), begin(begin), end(end)
+		ArrayIterator(pointer ptr, Array const* arr) noexcept : ptr(ptr), array(arr)
 		{}
 #else
-		constexpr ArrayIterator(V* pos) noexcept : pos(pos)
+		ArrayIterator(pointer ptr) noexcept : ptr(ptr)
 		{}
 #endif
-
-		constexpr void incrementPosition(difference_type offset) noexcept
-		{
-			HH_ASSERT(pos, "Cannot increment value-initialized iterator.");
-			HH_ASSERT(pos < end, "Cannot increment array iterator past end.");
-			pos += offset;
-		}
-
-		constexpr void decrementPosition(difference_type offset) noexcept
-		{
-			HH_ASSERT(pos, "Cannot decrement value-initialized iterator.");
-			HH_ASSERT(begin < pos, "Cannot decrement array iterator before begin.");
-			pos -= offset;
-		}
 	};
 
 	template<typename T, typename Allocator = std::allocator<T>> class Array
@@ -202,8 +182,8 @@ namespace hh
 		using const_pointer			 = typename AllocTraits::const_pointer;
 		using size_type				 = typename AllocTraits::size_type;
 		using difference_type		 = typename AllocTraits::difference_type;
-		using iterator				 = ArrayIterator<value_type>;
-		using const_iterator		 = ArrayIterator<value_type const>;
+		using iterator				 = ArrayIterator<Array, false>;
+		using const_iterator		 = ArrayIterator<Array, true>;
 		using reverse_iterator		 = std::reverse_iterator<iterator>;
 		using const_reverse_iterator = std::reverse_iterator<const_iterator>;
 
@@ -324,32 +304,32 @@ namespace hh
 
 		constexpr reference operator[](size_type index) noexcept
 		{
-			return commonSubscript(*this, index);
+			return common_subscript(*this, index);
 		}
 
 		constexpr const_reference operator[](size_type index) const noexcept
 		{
-			return commonSubscript(*this, index);
+			return common_subscript(*this, index);
 		}
 
 		constexpr reference at(size_type index)
 		{
-			return commonAt(*this, index);
+			return common_at(*this, index);
 		}
 
 		constexpr const_reference at(size_type index) const
 		{
-			return commonAt(*this, index);
+			return common_at(*this, index);
 		}
 
 		constexpr pointer get(size_type index) noexcept
 		{
-			return commonGet(*this, index);
+			return common_get(*this, index);
 		}
 
 		constexpr const_pointer get(size_type index) const noexcept
 		{
-			return commonGet(*this, index);
+			return common_get(*this, index);
 		}
 
 		constexpr reference front() noexcept
@@ -402,10 +382,10 @@ namespace hh
 			return std::exchange(arr, {});
 		}
 
-		constexpr void reset(pointer resetValue = {}) noexcept
+		constexpr void reset(pointer reset_value = {}) noexcept
 		{
 			destruct();
-			arr = resetValue;
+			arr = reset_value;
 		}
 
 		constexpr void swap(Array& that) noexcept
@@ -422,7 +402,7 @@ namespace hh
 		constexpr iterator begin() noexcept
 		{
 #if DEBUG
-			return {arr, arr, arr + count};
+			return {arr, this};
 #else
 			return {arr};
 #endif
@@ -431,7 +411,7 @@ namespace hh
 		constexpr const_iterator begin() const noexcept
 		{
 #if DEBUG
-			return {arr, arr, arr + count};
+			return {arr, this};
 #else
 			return {arr};
 #endif
@@ -440,8 +420,7 @@ namespace hh
 		constexpr iterator end() noexcept
 		{
 #if DEBUG
-			auto endPos = arr + count;
-			return {endPos, arr, endPos};
+			return {arr + count, this};
 #else
 			return {arr + count};
 #endif
@@ -450,8 +429,7 @@ namespace hh
 		constexpr const_iterator end() const noexcept
 		{
 #if DEBUG
-			auto endPos = arr + count;
-			return {endPos, arr, endPos};
+			return {arr + count, this};
 #else
 			return {arr + count};
 #endif
@@ -507,13 +485,13 @@ namespace hh
 			return AllocTraits::allocate(alloc, count);
 		}
 
-		template<typename U> static constexpr auto& commonSubscript(U& self, size_type index) noexcept
+		template<typename U> static constexpr auto& common_subscript(U& self, size_type index) noexcept
 		{
 			HH_ASSERT(index < self.count, "Tried to access list out of range.");
 			return self.arr[index];
 		}
 
-		template<typename U> static constexpr auto& commonAt(U& self, size_type index)
+		template<typename U> static constexpr auto& common_at(U& self, size_type index)
 		{
 			if(index < self.count)
 				return self.arr[index];
@@ -521,7 +499,7 @@ namespace hh
 			throw std::out_of_range("Index into list was out of range.");
 		}
 
-		template<typename U> static constexpr auto commonGet(U& self, size_type index) noexcept
+		template<typename U> static constexpr auto common_get(U& self, size_type index) noexcept
 		{
 			if(index < self.count)
 				return self.arr + index;
@@ -544,16 +522,31 @@ namespace hh
 
 namespace std
 {
-	template<typename T> struct pointer_traits<hh::ArrayIterator<T>>
+	template<typename Array> struct pointer_traits<hh::ArrayIterator<Array, true>>
 	{
-		using pointer		  = hh::ArrayIterator<T>;
+		using pointer		  = hh::ArrayIterator<Array, true>;
+		using element_type	  = typename pointer::value_type const;
+		using difference_type = typename pointer::difference_type;
+
+		[[nodiscard]] static constexpr element_type* to_address(pointer it) noexcept
+		{
+			HH_ASSERT(it.array->data() <= it.ptr && it.ptr <= it.array->data() + it.array->size(),
+					  "Iterator is not within a validly addressable range.");
+			return it.ptr;
+		}
+	};
+
+	template<typename Array> struct pointer_traits<hh::ArrayIterator<Array, false>>
+	{
+		using pointer		  = hh::ArrayIterator<Array, false>;
 		using element_type	  = typename pointer::value_type;
 		using difference_type = typename pointer::difference_type;
 
-		[[nodiscard]] static constexpr element_type* to_address(pointer iter) noexcept
+		[[nodiscard]] static constexpr element_type* to_address(pointer it) noexcept
 		{
-			HH_ASSERT(iter.begin <= iter.pos && iter.pos <= iter.end, "Iterator is not within a validly addressable range.");
-			return std::to_address(iter.pos);
+			HH_ASSERT(it.array->data() <= it.ptr && it.ptr <= it.array->data() + it.array->size(),
+					  "Iterator is not within a validly addressable range.");
+			return it.ptr;
 		}
 	};
 }

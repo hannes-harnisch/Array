@@ -46,26 +46,26 @@ TEST_CASE("ConstructorWithInitialValue")
 
 TEST_CASE("ConstructorWithInitializerList")
 {
-	std::initializer_list<unsigned char> const initializerList = {3, 4, 5};
-	Array<unsigned char>					   a(25, initializerList);
+	std::initializer_list<unsigned char> const initializer_list = {3, 4, 5};
+	Array<unsigned char>					   a(25, initializer_list);
 
 	auto element = a.begin();
-	for(int value : initializerList)
+	for(int value : initializer_list)
 		CHECK(*element++ == value);
 }
 
 TEST_CASE("ConstructorWithInitializerListAndDefaultValue")
 {
-	std::initializer_list<uint16_t> const initializerList {3, 4, 5};
-	constexpr uint16_t					  defaultValue = 100;
-	Array<uint16_t>						  a(25, initializerList, defaultValue);
+	std::initializer_list<uint16_t> const initializer_list {3, 4, 5};
+	constexpr uint16_t					  default_value = 100;
+	Array<uint16_t>						  a(25, initializer_list, default_value);
 
 	auto element = a.begin();
-	for(uint16_t value : initializerList)
+	for(uint16_t value : initializer_list)
 		CHECK(*element++ == value);
 
-	for(size_t i = initializerList.size(); i < a.size(); ++i)
-		CHECK(a[i] == defaultValue);
+	for(size_t i = initializer_list.size(); i < a.size(); ++i)
+		CHECK(a[i] == default_value);
 }
 
 TEST_CASE("CopyConstructor")
@@ -74,25 +74,25 @@ TEST_CASE("CopyConstructor")
 	auto		 b(a);
 	CHECK(a.size() == b.size());
 
-	auto elementA = a.begin();
-	for(float elementB : b)
-		CHECK(elementB == *elementA++);
+	auto element_a = a.begin();
+	for(float element_b : b)
+		CHECK(element_b == *element_a++);
 }
 
 TEST_CASE("MoveConstructor")
 {
-	constexpr size_t testSize	  = 50;
-	constexpr double initialValue = 1.25;
+	constexpr size_t test_size	   = 50;
+	constexpr double initial_value = 1.25;
 
-	Array<double> a(testSize, initialValue);
-	auto		  dataPtr = a.data();
-	auto		  b		  = std::move(a);
+	Array<double> a(test_size, initial_value);
+	auto		  data_ptr = a.data();
+	auto		  b		   = std::move(a);
 
-	CHECK(b.size() == testSize);
-	CHECK(b.data() == dataPtr);
+	CHECK(b.size() == test_size);
+	CHECK(b.data() == data_ptr);
 	CHECK(a.data() == nullptr);
 	for(double element : b)
-		CHECK(element == initialValue);
+		CHECK(element == initial_value);
 }
 
 TEST_CASE("CopyAssignment")
@@ -102,61 +102,61 @@ TEST_CASE("CopyAssignment")
 	b = a;
 
 	CHECK(a.size() == b.size());
-	auto elementB = b.begin();
-	for(short elementA : a)
-		CHECK(elementA == *elementB++);
+	auto element_b = b.begin();
+	for(short element_a : a)
+		CHECK(element_a == *element_b++);
 }
 
 TEST_CASE("MoveAssignment")
 {
-	constexpr size_t sizeA		   = 58;
-	constexpr char	 initialValueA = 'x';
+	constexpr size_t size_a			 = 58;
+	constexpr char	 initial_value_a = 'x';
 
-	Array<char> a(sizeA, initialValueA);
+	Array<char> a(size_a, initial_value_a);
 	Array<char> b(10);
-	auto		dataPtrA = a.data();
-	b					 = std::move(a);
+	auto		data_ptr_a = a.data();
+	b					   = std::move(a);
 
-	CHECK(b.size() == sizeA);
-	CHECK(b.data() == dataPtrA);
+	CHECK(b.size() == size_a);
+	CHECK(b.data() == data_ptr_a);
 	for(char element : b)
-		CHECK(element == initialValueA);
+		CHECK(element == initial_value_a);
 }
 
 TEST_CASE("Subscript")
 {
-	constexpr size_t   indexA = 1234;
-	constexpr size_t   indexB = 5678;
-	constexpr size_t   indexC = 9000;
-	constexpr unsigned valueA = 123;
-	constexpr unsigned valueB = 456;
-	constexpr unsigned valueC = 789;
+	constexpr size_t   index_a = 1234;
+	constexpr size_t   index_b = 5678;
+	constexpr size_t   index_c = 9000;
+	constexpr unsigned value_a = 123;
+	constexpr unsigned value_b = 456;
+	constexpr unsigned value_c = 789;
 
 	Array<unsigned> a(10000);
-	a[indexA] = valueA;
-	a[indexB] = valueB;
-	a[indexC] = valueC;
+	a[index_a] = value_a;
+	a[index_b] = value_b;
+	a[index_c] = value_c;
 
-	CHECK(a[indexA] == valueA);
-	CHECK(a[indexB] == valueB);
-	CHECK(a[indexC] == valueC);
+	CHECK(a[index_a] == value_a);
+	CHECK(a[index_b] == value_b);
+	CHECK(a[index_c] == value_c);
 }
 
 TEST_CASE("Equality")
 {
-	constexpr size_t	indexA = 33;
-	constexpr size_t	indexB = 333;
-	constexpr size_t	indexC = 3333;
-	constexpr long long valueA = 123933458;
-	constexpr long long valueB = 1233457654;
-	constexpr long long valueC = 12236353338;
+	constexpr size_t	index_a = 33;
+	constexpr size_t	index_b = 333;
+	constexpr size_t	index_c = 3333;
+	constexpr long long value_a = 123933458;
+	constexpr long long value_b = 1233457654;
+	constexpr long long value_c = 12236353338;
 
 	constexpr size_t size = 5000;
 	Array<long long> a(size, 0);
 	Array<long long> b(size, 0);
-	a[indexA] = b[indexA] = valueA;
-	a[indexB] = b[indexB] = valueB;
-	a[indexC] = b[indexC] = valueC;
+	a[index_a] = b[index_a] = value_a;
+	a[index_b] = b[index_b] = value_b;
+	a[index_c] = b[index_c] = value_c;
 	CHECK(a == b);
 }
 
@@ -295,10 +295,10 @@ TEST_CASE("Reset")
 
 TEST_CASE("Fill")
 {
-	constexpr int fillValue = 244;
-	Array<int>	  a(10, fillValue);
+	constexpr int fill_value = 244;
+	Array<int>	  a(10, fill_value);
 	for(int element : a)
-		CHECK(element == fillValue);
+		CHECK(element == fill_value);
 }
 
 TEST_CASE("Swap")
@@ -324,8 +324,8 @@ TEST_CASE("BeginAndEnd")
 	Array<short>	 a(size);
 
 	auto data = a.data();
-	CHECK(data == a.begin().operator->());
-	CHECK(data + size == a.end().operator->());
+	CHECK(data == std::to_address(a.begin()));
+	CHECK(data + size == std::to_address(a.end()));
 }
 
 TEST_CASE("ReverseBeginAndEnd")
@@ -385,59 +385,59 @@ TEST_CASE("IteratorEquality")
 TEST_CASE("IteratorInequality")
 {
 	Array<long> a(30);
-	auto		getsIncremented = a.cbegin();
-	auto		getsDecremented = a.cend();
-	CHECK(a.begin() != ++getsIncremented);
-	CHECK(a.end() != --getsDecremented);
+	auto		gets_incremented = a.cbegin();
+	auto		gets_decremented = a.cend();
+	CHECK(a.begin() != ++gets_incremented);
+	CHECK(a.end() != --gets_decremented);
 }
 
 TEST_CASE("IteratorLessThan")
 {
 	Array<long> const a(30);
-	auto			  getsIncremented = a.begin();
-	CHECK(a.begin() < ++getsIncremented);
+	auto			  gets_incremented = a.begin();
+	CHECK(a.begin() < ++gets_incremented);
 }
 
 TEST_CASE("IteratorGreaterThan")
 {
 	Array<long> a(30);
-	auto		getsIncremented = a.begin();
-	CHECK(++getsIncremented > a.begin());
+	auto		gets_incremented = a.begin();
+	CHECK(++gets_incremented > a.begin());
 }
 
 TEST_CASE("IteratorLessThanOrEqual")
 {
 	Array<long> a(30);
 	CHECK(a.begin() <= a.begin());
-	auto getsIncremented = a.begin();
-	CHECK(a.begin() <= ++getsIncremented);
+	auto gets_incremented = a.begin();
+	CHECK(a.begin() <= ++gets_incremented);
 }
 
 TEST_CASE("IteratorGreaterThanOrEqual")
 {
 	Array<long> a(30);
-	auto		getsIncremented = a.begin();
+	auto		gets_incremented = a.begin();
 	CHECK(a.begin() >= a.begin());
-	CHECK(++getsIncremented >= a.begin());
+	CHECK(++gets_incremented >= a.begin());
 }
 
 TEST_CASE("IteratorSpaceship")
 {
 #ifdef __cpp_lib_three_way_comparison
 	Array<long> a(30);
-	auto const	secondElement = a.begin() + 1;
-	auto		getsMutated	  = a.begin() + 2;
-	CHECK((getsMutated <=> secondElement) == std::strong_ordering::greater);
-	CHECK((--getsMutated <=> secondElement) == std::strong_ordering::equal);
-	CHECK((--getsMutated <=> secondElement) == std::strong_ordering::less);
+	auto const	second_element = a.begin() + 1;
+	auto		gets_mutated   = a.begin() + 2;
+	CHECK((gets_mutated <=> second_element) == std::strong_ordering::greater);
+	CHECK((--gets_mutated <=> second_element) == std::strong_ordering::equal);
+	CHECK((--gets_mutated <=> second_element) == std::strong_ordering::less);
 #endif
 }
 
 TEST_CASE("IteratorPreIncrement")
 {
 	Array<long> a(3, {5, 6, 7});
-	auto		getsIncremented = a.begin();
-	CHECK(*++getsIncremented == 6);
+	auto		gets_incremented = a.begin();
+	CHECK(*++gets_incremented == 6);
 }
 
 TEST_CASE("IteratorPostIncrement")
@@ -452,16 +452,16 @@ TEST_CASE("IteratorPostIncrement")
 TEST_CASE("IteratorPreDecrement")
 {
 	Array<long> a(3, {5, 6, 7});
-	auto		getsDecremented = a.end();
-	CHECK(*--getsDecremented == 7);
+	auto		gets_decremented = a.end();
+	CHECK(*--gets_decremented == 7);
 }
 
 TEST_CASE("IteratorPostDecrement")
 {
 	Array<long> a(3, {5, 6, 7});
-	auto		getsDecremented = a.end();
-	auto		end {getsDecremented--};
-	CHECK(end != getsDecremented);
+	auto		gets_decremented = a.end();
+	auto		end {gets_decremented--};
+	CHECK(end != gets_decremented);
 }
 
 TEST_CASE("IteratorAdditionAssignment")
