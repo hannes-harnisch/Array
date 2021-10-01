@@ -17,6 +17,7 @@ project 'Tests'
 	targetdir			('.bin/'	 .. outputdir .. '/%{prj.name}')
 	files				{
 							'Include/Array.hpp',
+							'Include/Array.natvis',
 							'Tests/Tests.cpp',
 							'Tests/doctest/doctest/doctest.h'
 						}

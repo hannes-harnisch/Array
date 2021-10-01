@@ -20,7 +20,7 @@
 
 namespace hh
 {
-	template<typename Array, bool Const> class ArrayIterator
+	template<typename Array, bool CONST> class ArrayIterator
 	{
 		friend Array;
 		template<typename, bool> friend class ArrayIterator;
@@ -28,8 +28,8 @@ namespace hh
 
 	public:
 		using iterator_concept = std::contiguous_iterator_tag;
-		using pointer		   = std::conditional_t<Const, typename Array::const_pointer, typename Array::pointer>;
-		using reference		   = std::conditional_t<Const, typename Array::const_reference, typename Array::reference>;
+		using pointer		   = std::conditional_t<CONST, typename Array::const_pointer, typename Array::pointer>;
+		using reference		   = std::conditional_t<CONST, typename Array::const_reference, typename Array::reference>;
 		using value_type	   = typename Array::value_type;
 		using difference_type  = typename Array::difference_type;
 
@@ -56,37 +56,37 @@ namespace hh
 			return ptr;
 		}
 
-		template<bool Const2> bool operator==(ArrayIterator<Array, Const2> that) const noexcept
+		template<bool CONST2> bool operator==(ArrayIterator<Array, CONST2> that) const noexcept
 		{
 			return ptr == that.ptr;
 		}
 
-		template<bool Const2> bool operator!=(ArrayIterator<Array, Const2> that) const noexcept
+		template<bool CONST2> bool operator!=(ArrayIterator<Array, CONST2> that) const noexcept
 		{
 			return ptr != that.ptr;
 		}
 
-		template<bool Const2> bool operator<(ArrayIterator<Array, Const2> that) const noexcept
+		template<bool CONST2> bool operator<(ArrayIterator<Array, CONST2> that) const noexcept
 		{
 			return ptr < that.ptr;
 		}
 
-		template<bool Const2> bool operator<=(ArrayIterator<Array, Const2> that) const noexcept
+		template<bool CONST2> bool operator<=(ArrayIterator<Array, CONST2> that) const noexcept
 		{
 			return ptr <= that.ptr;
 		}
 
-		template<bool Const2> bool operator>(ArrayIterator<Array, Const2> that) const noexcept
+		template<bool CONST2> bool operator>(ArrayIterator<Array, CONST2> that) const noexcept
 		{
 			return ptr > that.ptr;
 		}
 
-		template<bool Const2> bool operator>=(ArrayIterator<Array, Const2> that) const noexcept
+		template<bool CONST2> bool operator>=(ArrayIterator<Array, CONST2> that) const noexcept
 		{
 			return ptr >= that.ptr;
 		}
 
-		template<bool Const2> std::strong_ordering operator<=>(ArrayIterator<Array, Const2> that) const noexcept
+		template<bool CONST2> std::strong_ordering operator<=>(ArrayIterator<Array, CONST2> that) const noexcept
 		{
 			return ptr <=> that.ptr;
 		}
@@ -147,7 +147,7 @@ namespace hh
 			return old -= offset;
 		}
 
-		template<bool Const2> difference_type operator-(ArrayIterator<Array, Const2> that) const noexcept
+		template<bool CONST2> difference_type operator-(ArrayIterator<Array, CONST2> that) const noexcept
 		{
 			return ptr - that.ptr;
 		}
