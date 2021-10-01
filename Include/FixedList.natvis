@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<AutoVisualizer xmlns="http://schemas.microsoft.com/vstudio/debugger/natvis/2010">
+	<Type Name="hh::FixedList&lt;*&gt;">
+		<DisplayString>{{ capacity={$T2}, size={(size_t)elem_count} }}</DisplayString>
+		<Expand>
+			<ArrayItems>
+				<Size>elem_count</Size>
+				<ValuePointer>(value_type*)storage</ValuePointer>
+			</ArrayItems>
+		</Expand>
+	</Type>
+</AutoVisualizer>
