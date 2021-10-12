@@ -12,3 +12,9 @@ A single-header implementation of a compile-time fixed-capacity, dynamic array t
 * Allows using custom assertions.
 * No spillage of implementation details.
 * Allowing straightforward modification of class and method names as well as the namespace to fit your codebase's naming convention.
+
+## To do
+
+* Add converting constructors for FixedLists where the source value type is conversion-constructible to the target value type.
+* Improve internal use of ``std::memmove``.
+* Refactor modifying member functions to take const iterators.

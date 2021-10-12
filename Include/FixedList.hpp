@@ -840,7 +840,7 @@ namespace hh
 
 	private:
 		count_type elem_count = 0;
-		alignas(T) std::byte storage[sizeof(T) * CAPACITY];
+		alignas(T) char storage[sizeof(T) * CAPACITY];
 
 		static auto& common_subscript(auto self, size_t index) noexcept
 		{
