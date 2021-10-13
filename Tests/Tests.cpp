@@ -15,27 +15,16 @@ TEST_CASE("DefaultConstructor")
 	for([[maybe_unused]] int element : a)
 		CHECK(false); // Check that there are no elements.
 
+	static_assert(sizeof a == sizeof(void*) + sizeof(size_t));
+
 	CHECK(a.data() == nullptr);
-}
-
-TEST_CASE("ConstructorWithNonDefaultConstructibleType")
-{
-	struct A
-	{
-		A(int)
-		{}
-	};
-	static_assert(!std::is_default_constructible_v<A>);
-
-	Array<A> a(5);
-	CHECK(a.data());
 }
 
 TEST_CASE("ConstructorWithInitialValue")
 {
 	constexpr char character = 'y';
 
-	Array<std::string> a(30, 5, 'y');
+	Array<std::string> a(30, std::string(5, 'y'));
 	for(auto& str : a)
 		CHECK(str == "yyyyy");
 
@@ -57,8 +46,9 @@ TEST_CASE("ConstructorWithInitializerList")
 TEST_CASE("ConstructorWithInitializerListAndDefaultValue")
 {
 	std::initializer_list<uint16_t> const initializer_list {3, 4, 5};
-	constexpr uint16_t					  default_value = 100;
-	Array<uint16_t>						  a(25, initializer_list, default_value);
+
+	constexpr uint16_t default_value = 100;
+	Array<uint16_t>	   a(25, initializer_list, default_value);
 
 	auto element = a.begin();
 	for(uint16_t value : initializer_list)
@@ -85,11 +75,12 @@ TEST_CASE("MoveConstructor")
 	constexpr double initial_value = 1.25;
 
 	Array<double> a(test_size, initial_value);
-	auto		  data_ptr = a.data();
-	auto		  b		   = std::move(a);
+
+	auto data = a.data();
+	auto b	  = std::move(a);
 
 	CHECK(b.size() == test_size);
-	CHECK(b.data() == data_ptr);
+	CHECK(b.data() == data);
 	CHECK(a.data() == nullptr);
 	for(double element : b)
 		CHECK(element == initial_value);
@@ -114,8 +105,10 @@ TEST_CASE("MoveAssignment")
 
 	Array<char> a(size_a, initial_value_a);
 	Array<char> b(10);
-	auto		data_ptr_a = a.data();
-	b					   = std::move(a);
+
+	auto data_ptr_a = a.data();
+
+	b = std::move(a);
 
 	CHECK(b.size() == size_a);
 	CHECK(b.data() == data_ptr_a);
@@ -278,14 +271,6 @@ TEST_CASE("MaxSize")
 	CHECK(a.max_size());
 }
 
-TEST_CASE("Release")
-{
-	Array<int> a(25);
-	auto	   ptr = a.release();
-	CHECK(a.data() == nullptr);
-	delete ptr;
-}
-
 TEST_CASE("Reset")
 {
 	Array<long long> a(25);
@@ -304,10 +289,12 @@ TEST_CASE("Fill")
 TEST_CASE("Swap")
 {
 	std::random_device random;
-	Array<unsigned>	   a(5, {random(), random(), random()});
-	Array<unsigned>	   b(5, {random(), random(), random()});
-	auto			   c(a);
-	auto			   d(b);
+
+	Array<unsigned> a(5, {random(), random(), random()});
+	Array<unsigned> b(5, {random(), random(), random()});
+
+	auto c(a);
+	auto d(b);
 
 	a.swap(b);
 	CHECK(a == d);
@@ -321,11 +308,13 @@ TEST_CASE("Swap")
 TEST_CASE("BeginAndEnd")
 {
 	constexpr size_t size = 25;
-	Array<short>	 a(size);
 
-	auto data = a.data();
-	CHECK(data == std::to_address(a.begin()));
-	CHECK(data + size == std::to_address(a.end()));
+	Array<short> a(size);
+	a.front() = 23;
+	a.back()  = 47;
+
+	CHECK(*a.begin() == 23);
+	CHECK(a.end()[-1] == 47);
 }
 
 TEST_CASE("ReverseBeginAndEnd")
@@ -352,7 +341,8 @@ TEST_CASE("IteratorContiguousProperty")
 
 TEST_CASE("IteratorDefaultConstructor")
 {
-	Array<int>			 a(100);
+	Array<int> a(100);
+
 	Array<int>::iterator it;
 	CHECK(true);
 }
@@ -360,24 +350,27 @@ TEST_CASE("IteratorDefaultConstructor")
 TEST_CASE("IteratorDereference")
 {
 	Array<std::string> a(25, {"AA", "BB", "CC"});
-	auto			   first = a.begin();
+
+	auto first = a.begin();
 	CHECK(*first == "AA");
 }
 
 TEST_CASE("IteratorArrow")
 {
 	Array<std::string> a(25, {"AAA", "BB", "C"});
-	auto			   first = a.begin();
+
+	auto first = a.begin();
 	CHECK(first->length() == 3);
 }
 
 TEST_CASE("IteratorEquality")
 {
 	Array<long> a(30);
-	auto		begin1 = a.begin();
-	auto		begin2 = a.cbegin();
-	auto		end1   = a.end();
-	auto		end2   = a.cend();
+
+	auto begin1 = a.begin();
+	auto begin2 = a.cbegin();
+	auto end1	= a.end();
+	auto end2	= a.cend();
 	CHECK(begin1 == begin2);
 	CHECK(end1 == end2);
 }
@@ -385,8 +378,9 @@ TEST_CASE("IteratorEquality")
 TEST_CASE("IteratorInequality")
 {
 	Array<long> a(30);
-	auto		gets_incremented = a.cbegin();
-	auto		gets_decremented = a.cend();
+
+	auto gets_incremented = a.cbegin();
+	auto gets_decremented = a.cend();
 	CHECK(a.begin() != ++gets_incremented);
 	CHECK(a.end() != --gets_decremented);
 }
@@ -394,14 +388,16 @@ TEST_CASE("IteratorInequality")
 TEST_CASE("IteratorLessThan")
 {
 	Array<long> const a(30);
-	auto			  gets_incremented = a.begin();
+
+	auto gets_incremented = a.begin();
 	CHECK(a.begin() < ++gets_incremented);
 }
 
 TEST_CASE("IteratorGreaterThan")
 {
 	Array<long> a(30);
-	auto		gets_incremented = a.begin();
+
+	auto gets_incremented = a.begin();
 	CHECK(++gets_incremented > a.begin());
 }
 
@@ -409,6 +405,7 @@ TEST_CASE("IteratorLessThanOrEqual")
 {
 	Array<long> a(30);
 	CHECK(a.begin() <= a.begin());
+
 	auto gets_incremented = a.begin();
 	CHECK(a.begin() <= ++gets_incremented);
 }
@@ -416,7 +413,8 @@ TEST_CASE("IteratorLessThanOrEqual")
 TEST_CASE("IteratorGreaterThanOrEqual")
 {
 	Array<long> a(30);
-	auto		gets_incremented = a.begin();
+
+	auto gets_incremented = a.begin();
 	CHECK(a.begin() >= a.begin());
 	CHECK(++gets_incremented >= a.begin());
 }
@@ -436,15 +434,17 @@ TEST_CASE("IteratorSpaceship")
 TEST_CASE("IteratorPreIncrement")
 {
 	Array<long> a(3, {5, 6, 7});
-	auto		gets_incremented = a.begin();
+
+	auto gets_incremented = a.begin();
 	CHECK(*++gets_incremented == 6);
 }
 
 TEST_CASE("IteratorPostIncrement")
 {
 	Array<long> a(3, {5, 6, 7});
-	auto		incremented = a.begin();
-	auto		first		= incremented++;
+
+	auto incremented = a.begin();
+	auto first		 = incremented++;
 	CHECK(*first == 5);
 	CHECK(*incremented == 6);
 }
@@ -452,22 +452,25 @@ TEST_CASE("IteratorPostIncrement")
 TEST_CASE("IteratorPreDecrement")
 {
 	Array<long> a(3, {5, 6, 7});
-	auto		gets_decremented = a.end();
+
+	auto gets_decremented = a.end();
 	CHECK(*--gets_decremented == 7);
 }
 
 TEST_CASE("IteratorPostDecrement")
 {
 	Array<long> a(3, {5, 6, 7});
-	auto		gets_decremented = a.end();
-	auto		end {gets_decremented--};
+
+	auto gets_decremented = a.end();
+	auto end {gets_decremented--};
 	CHECK(end != gets_decremented);
 }
 
 TEST_CASE("IteratorAdditionAssignment")
 {
 	Array<int> a(5, {10, 11, 12});
-	auto	   begin = a.begin();
+
+	auto begin = a.begin();
 	CHECK(*(begin += 2) == 12);
 	CHECK(*begin == 12);
 }
@@ -475,8 +478,9 @@ TEST_CASE("IteratorAdditionAssignment")
 TEST_CASE("IteratorAddition")
 {
 	Array<int> a(5, {10, 11, 12});
-	auto	   second = a.begin() + 1;
-	auto	   third {2 + a.begin()};
+
+	auto second = a.begin() + 1;
+	auto third {2 + a.begin()};
 	CHECK(*second == 11);
 	CHECK(*third == 12);
 }
@@ -484,7 +488,8 @@ TEST_CASE("IteratorAddition")
 TEST_CASE("IteratorSubtractionAssignment")
 {
 	Array<int> a(3, {10, 11, 12});
-	auto	   end = a.end();
+
+	auto end = a.end();
 	CHECK(*(end -= 2) == 11);
 	CHECK(*end == 11);
 }
@@ -492,8 +497,9 @@ TEST_CASE("IteratorSubtractionAssignment")
 TEST_CASE("IteratorSubtraction")
 {
 	Array<int> a(3, {10, 11, 12});
-	auto	   last	  = a.end() - 1;
-	auto	   offset = last - a.begin();
+
+	auto last	= a.end() - 1;
+	auto offset = last - a.begin();
 	CHECK(*last == 12);
 	CHECK(size_t(offset) == a.size() - 1);
 }
@@ -501,6 +507,7 @@ TEST_CASE("IteratorSubtraction")
 TEST_CASE("IteratorSubscript")
 {
 	Array<int> a(6, {11, 12, 13, 14, 15, 16});
-	auto	   it = a.begin() + 2;
+
+	auto it = a.begin() + 2;
 	CHECK(it[2] == 15);
 }

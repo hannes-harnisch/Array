@@ -3,9 +3,10 @@
 	<Type Name="hh::Array&lt;*&gt;">
 		<DisplayString>{{ size={count} }}</DisplayString>
 		<Expand>
+			<Item Name="allocator">($T2)allocator</Item>
 			<ArrayItems>
 				<Size>count</Size>
-				<ValuePointer>arr</ValuePointer>
+				<ValuePointer>allocator.array</ValuePointer>
 			</ArrayItems>
 		</Expand>
 	</Type>

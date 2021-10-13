@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include <algorithm>
 #include <iterator>
@@ -27,11 +27,14 @@ namespace hh
 		template<typename> friend struct std::pointer_traits;
 
 	public:
+#ifdef __cpp_lib_concepts
 		using iterator_concept = std::contiguous_iterator_tag;
-		using pointer		   = std::conditional_t<CONST, typename Array::const_pointer, typename Array::pointer>;
-		using reference		   = std::conditional_t<CONST, typename Array::const_reference, typename Array::reference>;
-		using value_type	   = typename Array::value_type;
-		using difference_type  = typename Array::difference_type;
+#endif
+		using iterator_category = std::random_access_iterator_tag;
+		using pointer			= std::conditional_t<CONST, typename Array::const_pointer, typename Array::pointer>;
+		using reference			= std::conditional_t<CONST, typename Array::const_reference, typename Array::reference>;
+		using value_type		= typename Array::value_type;
+		using difference_type	= typename Array::difference_type;
 
 		ArrayIterator() = default;
 
@@ -86,10 +89,12 @@ namespace hh
 			return ptr >= that.ptr;
 		}
 
+#ifdef __cpp_lib_three_way_comparison
 		template<bool CONST2> std::strong_ordering operator<=>(ArrayIterator<Array, CONST2> that) const noexcept
 		{
 			return ptr <=> that.ptr;
 		}
+#endif
 
 		ArrayIterator& operator++() noexcept
 		{
@@ -194,61 +199,62 @@ namespace hh
 
 		constexpr Array() = default;
 
-		constexpr Array(size_type count) : arr(allocate(count)), count(count)
+		constexpr explicit Array(Allocator const& alloc) : alloc_pair {alloc}
+		{}
+
+		constexpr Array(size_type count, Allocator const& alloc = Allocator()) :
+			alloc_pair {alloc, allocate(count)}, count(count)
 		{
-			if constexpr(std::is_default_constructible_v<value_type>)
-			{
-				Allocator alloc;
-
-				for(auto& element : *this)
-					AllocTraits::construct(alloc, &element);
-			}
-		}
-
-		template<typename... Ts> constexpr Array(size_type count, Ts&&... ts) : arr(allocate(count)), count(count)
-		{
-			Allocator alloc;
-
 			for(auto& element : *this)
-				AllocTraits::construct(alloc, &element, ts...);
+				AllocTraits::construct(alloc_pair, &element);
 		}
 
 		template<typename U>
-		constexpr Array(size_type count, std::initializer_list<U> initializers) : arr(allocate(count)), count(count)
+		constexpr Array(size_type count, U const& value, Allocator const& alloc = Allocator()) :
+			alloc_pair {alloc, allocate(count)}, count(count)
+		{
+			for(auto& element : *this)
+				AllocTraits::construct(alloc_pair, &element, value);
+		}
+
+		template<typename U>
+		constexpr Array(size_type count, std::initializer_list<U> initializers, Allocator const& alloc = Allocator()) :
+			alloc_pair {alloc, allocate(count)}, count(count)
 		{
 			HH_ASSERT(count >= initializers.size(), "Size of initializer list exceeds array size.");
 
-			Allocator alloc;
-
 			auto element = begin();
-			for(auto&& init : initializers)
-				AllocTraits::construct(alloc, &*element++, std::move(init));
+			for(auto init : initializers)
+				AllocTraits::construct(alloc_pair, &*element++, std::move(init));
 
-			if constexpr(std::is_default_constructible_v<value_type>)
-				for(auto rest = begin() + static_cast<iterator::difference_type>(initializers.size()); rest != end(); ++rest)
-					AllocTraits::construct(alloc, &*rest);
+			auto offset = static_cast<typename iterator::difference_type>(initializers.size());
+			for(auto rest = begin() + offset; rest != end(); ++rest)
+				AllocTraits::construct(alloc_pair, &*rest);
 		}
 
 		template<typename U, typename V>
-		constexpr Array(size_type count, std::initializer_list<U> initializers, V&& fallback) : Array(count, initializers)
+		constexpr Array(size_type				 count,
+						std::initializer_list<U> initializers,
+						V const&				 fallback,
+						Allocator const&		 alloc = Allocator()) :
+			Array(count, initializers, alloc)
 		{
-			Allocator alloc;
-
-			for(auto element = begin() + static_cast<iterator::difference_type>(initializers.size()); element != end();
-				++element)
-				AllocTraits::construct(alloc, &*element, fallback);
+			auto offset = static_cast<typename iterator::difference_type>(initializers.size());
+			for(auto element = begin() + offset; element != end(); ++element)
+				AllocTraits::construct(alloc_pair, &*element, fallback);
 		}
 
-		constexpr Array(Array const& that) : arr(allocate(that.count)), count(that.count)
+		constexpr Array(Array const& that) :
+			alloc_pair {AllocTraits::select_on_container_copy_construction(that.alloc_pair.first()), allocate(that.count)},
+			count(that.count)
 		{
-			Allocator alloc;
-
 			auto other = that.begin();
 			for(auto& element : *this)
-				AllocTraits::construct(alloc, &element, *other++);
+				AllocTraits::construct(alloc_pair, &element, *other++);
 		}
 
-		constexpr Array(Array&& that) noexcept : arr(that.release()), count(that.count)
+		constexpr Array(Array&& that) noexcept :
+			alloc_pair {std::move(that.alloc_pair.first()), std::exchange(that.alloc_pair.array, {})}, count(that.count)
 		{}
 
 #ifdef __cpp_constexpr_dynamic_alloc
@@ -364,34 +370,30 @@ namespace hh
 
 		constexpr pointer data() noexcept
 		{
-			return arr;
+			return alloc_pair.array;
 		}
 
 		constexpr const_pointer data() const noexcept
 		{
-			return arr;
+			return alloc_pair.array;
 		}
 
-		template<typename U> constexpr void fill(U&& value) noexcept
+		template<typename U> constexpr void fill(U const& value) noexcept
 		{
 			std::fill(begin(), end(), value);
 		}
 
-		[[nodiscard]] constexpr pointer release() noexcept
-		{
-			return std::exchange(arr, {});
-		}
-
-		constexpr void reset(pointer reset_value = {}) noexcept
+		constexpr void reset() noexcept
 		{
 			destruct();
-			arr = reset_value;
+			alloc_pair.array = {};
+			count			 = 0;
 		}
 
 		constexpr void swap(Array& that) noexcept
 		{
+			std::swap(alloc_pair, that.alloc_pair);
 			std::swap(count, that.count);
-			std::swap(arr, that.arr);
 		}
 
 		friend constexpr void swap(Array& left, Array& right) noexcept
@@ -402,36 +404,36 @@ namespace hh
 		constexpr iterator begin() noexcept
 		{
 #if DEBUG
-			return {arr, this};
+			return {data(), this};
 #else
-			return {arr};
+			return {data()};
 #endif
 		}
 
 		constexpr const_iterator begin() const noexcept
 		{
 #if DEBUG
-			return {arr, this};
+			return {data(), this};
 #else
-			return {arr};
+			return {data()};
 #endif
 		}
 
 		constexpr iterator end() noexcept
 		{
 #if DEBUG
-			return {arr + count, this};
+			return {data() + count, this};
 #else
-			return {arr + count};
+			return {data() + count};
 #endif
 		}
 
 		constexpr const_iterator end() const noexcept
 		{
 #if DEBUG
-			return {arr + count, this};
+			return {data() + count, this};
 #else
-			return {arr + count};
+			return {data() + count};
 #endif
 		}
 
@@ -476,25 +478,39 @@ namespace hh
 		}
 
 	private:
-		pointer	  arr	= {};
+		struct : Allocator
+		{
+			Array::pointer array = {};
+
+			Allocator& first() noexcept
+			{
+				return *this;
+			}
+
+			Allocator const& first() const noexcept
+			{
+				return *this;
+			}
+
+		} alloc_pair;
+
 		size_type count = {};
 
-		static constexpr pointer allocate(size_type count)
+		constexpr pointer allocate(size_type units)
 		{
-			Allocator alloc;
-			return AllocTraits::allocate(alloc, count);
+			return AllocTraits::allocate(alloc_pair, units);
 		}
 
 		template<typename U> static constexpr auto& common_subscript(U& self, size_type index) noexcept
 		{
 			HH_ASSERT(index < self.count, "Tried to access list out of range.");
-			return self.arr[index];
+			return self.data()[index];
 		}
 
 		template<typename U> static constexpr auto& common_at(U& self, size_type index)
 		{
 			if(index < self.count)
-				return self.arr[index];
+				return self.data()[index];
 
 			throw std::out_of_range("Index into list was out of range.");
 		}
@@ -502,20 +518,18 @@ namespace hh
 		template<typename U> static constexpr auto common_get(U& self, size_type index) noexcept
 		{
 			if(index < self.count)
-				return self.arr + index;
+				return self.data() + index;
 
-			return static_cast<decltype(self.arr)>(nullptr);
+			return static_cast<decltype(self.data())>(nullptr);
 		}
 
 		constexpr void destruct() noexcept
 		{
-			Allocator alloc;
-
 			if constexpr(!std::is_trivially_destructible_v<value_type>)
 				for(auto& element : *this)
-					AllocTraits::destroy(alloc, &element);
+					AllocTraits::destroy(alloc_pair, &element);
 
-			AllocTraits::deallocate(alloc, arr, count);
+			AllocTraits::deallocate(alloc_pair, data(), count);
 		}
 	};
 }

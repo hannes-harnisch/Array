@@ -14,8 +14,6 @@ A single-header implementation of a fixed-size heap-allocated array with a stand
 * Minimal memory overhead, achieved through two ways:
   * Having only 2 word-sized members as compared to ``std::vector``'s 3 word-sized members (in typical standard library implementations).
   * Using ``std::allocator``, which typically just uses ``new``. This elides some overhead associated with ``new[]``, which has to keep track of the allocated size at the start of the allocated block in most implementations.
-* Providing an alternate allocator for types that correctly overload ``new[]``/``delete[]`` or ``new``/``delete``. (Coming soon!)
 
-# Interface
-
-Coming soon.
+## To do
+* Providing an alternate allocator for types that correctly overload ``new[]``/``delete[]`` or ``new``/``delete``.
