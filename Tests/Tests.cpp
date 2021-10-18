@@ -1,4 +1,4 @@
-#define HH_ASSERT(condition, message)                                                                                          \
+﻿#define HH_ASSERT(condition, message)                                                                                          \
 	{                                                                                                                          \
 		if(!(condition))                                                                                                       \
 		{                                                                                                                      \
@@ -134,27 +134,27 @@ TEST_CASE("ctor(copy)")
 	FixedList<string, 15> l2 = l1;
 	REQUIRE(l1.size() == l2.size());
 
-	auto s2		 = l2.begin();
-	bool reached = false;
+	auto s2		= l2.begin();
+	bool thrown = false;
 	for(auto& s1 : l1)
 	{
-		reached = true;
+		thrown = true;
 		REQUIRE(s1 == *s2++);
 	}
-	REQUIRE(reached);
+	REQUIRE(thrown);
 
 	FixedList<int, 10> l3 {1, 2, 3, 4, 5};
 	FixedList<int, 10> l4 = l3;
 	REQUIRE(l3.size() == l4.size());
 
-	auto i	= l3.begin();
-	reached = false;
+	auto i = l3.begin();
+	thrown = false;
 	for(auto& s3 : l3)
 	{
-		reached = true;
+		thrown = true;
 		REQUIRE(s3 == *i++);
 	}
-	REQUIRE(reached);
+	REQUIRE(thrown);
 
 	static_assert(is_trivially_copy_constructible_v<FixedList<int, 1>>);
 	static_assert(!is_trivially_copy_constructible_v<FixedList<string, 1>>);
@@ -366,16 +366,16 @@ TEST_CASE("at")
 {
 	FixedList<string, 7> l {"X", "Y", "Z"};
 
-	bool reached = false;
+	bool thrown = false;
 	try
 	{
 		l.at(3);
 	}
 	catch(out_of_range)
 	{
-		reached = true;
+		thrown = true;
 	}
-	REQUIRE(reached);
+	REQUIRE(thrown);
 
 	REQUIRE(l.at(1) == "Y");
 }
@@ -444,7 +444,7 @@ TEST_CASE("assign(count,value) throw")
 		X(X&&) = default;
 	};
 
-	bool reached = false;
+	bool thrown = false;
 
 	FixedList<X, 9> l(3);
 	try
@@ -453,10 +453,10 @@ TEST_CASE("assign(count,value) throw")
 	}
 	catch(TestException)
 	{
-		reached = true;
+		thrown = true;
 		REQUIRE(l.empty());
 	}
-	REQUIRE(reached);
+	REQUIRE(thrown);
 }
 
 TEST_CASE("assign(first,last) forward")
@@ -492,7 +492,7 @@ TEST_CASE("assign(first,last) forward throw")
 		X(X&&) = default;
 	};
 
-	bool reached = false;
+	bool thrown = false;
 
 	FixedList<X, 9> l(3);
 	FixedList<X, 9> l2(3);
@@ -502,10 +502,10 @@ TEST_CASE("assign(first,last) forward throw")
 	}
 	catch(TestException)
 	{
-		reached = true;
+		thrown = true;
 		REQUIRE(l.empty());
 	}
-	REQUIRE(reached);
+	REQUIRE(thrown);
 }
 
 TEST_CASE("assign(first,last) input")
@@ -561,17 +561,17 @@ TEST_CASE("assign(first,last) input throw")
 	l.emplace_back();
 	REQUIRE(l.size() == 3);
 
-	bool reached = false;
+	bool thrown = false;
 	try
 	{
 		l.assign(move_begin, move_end);
 	}
 	catch(TestException)
 	{
-		reached = true;
+		thrown = true;
 		REQUIRE(l.empty());
 	}
-	REQUIRE(reached);
+	REQUIRE(thrown);
 }
 
 TEST_CASE("assign(init)")
@@ -604,7 +604,7 @@ TEST_CASE("assign(init) throw")
 		X(X&&) = default;
 	};
 
-	bool reached = false;
+	bool thrown = false;
 
 	FixedList<X, 9> l(3);
 	try
@@ -613,10 +613,10 @@ TEST_CASE("assign(init) throw")
 	}
 	catch(TestException)
 	{
-		reached = true;
+		thrown = true;
 		REQUIRE(l.empty());
 	}
-	REQUIRE(reached);
+	REQUIRE(thrown);
 }
 
 TEST_CASE("insert(pos,value)")
@@ -633,22 +633,24 @@ TEST_CASE("insert(pos,value)")
 
 TEST_CASE("insert(pos,value) throw")
 {
+	static unsigned counter = 3;
 	struct X
 	{
 		string s;
 
-		X(string s) : s(s)
+		X(char const* s) : s(s)
 		{}
 
-		X(X const&)
+		X(X const& x) : s(x.s)
 		{
-			throw TestException();
+			if(!counter--)
+				throw TestException();
 		}
 
 		X(X&&) = default;
 	};
 
-	bool reached = false;
+	bool thrown = false;
 
 	FixedList<X, 9> l {"1", "2", "3"};
 	try
@@ -658,14 +660,14 @@ TEST_CASE("insert(pos,value) throw")
 	}
 	catch(TestException)
 	{
-		reached = true;
+		thrown = true;
 
 		array arr {"1", "2", "3"};
 		auto  i = l.begin();
 		for(auto str : arr)
 			REQUIRE(i++->s == str);
 	}
-	REQUIRE(reached);
+	REQUIRE(thrown);
 }
 
 TEST_CASE("try_insert(pos,value)")
@@ -694,15 +696,15 @@ TEST_CASE("insert(pos,count,value)")
 
 TEST_CASE("insert(pos,count,value) throw")
 {
-	static unsigned counter = 3;
+	static unsigned counter = 4;
 	struct X
 	{
 		string s;
 
-		X(string s) : s(s)
+		X(char const* s) : s(s)
 		{}
 
-		X(X const&)
+		X(X const& x) : s(x.s)
 		{
 			if(!counter--)
 				throw TestException();
@@ -711,7 +713,7 @@ TEST_CASE("insert(pos,count,value) throw")
 		X(X&&) = default;
 	};
 
-	bool reached = false;
+	bool thrown = false;
 
 	FixedList<X, 9> l {"1", "2", "3"};
 	try
@@ -721,14 +723,14 @@ TEST_CASE("insert(pos,count,value) throw")
 	}
 	catch(TestException)
 	{
-		reached = true;
+		thrown = true;
 
 		array arr {"1", "2", "3"};
 		auto  i = l.begin();
 		for(auto str : arr)
 			REQUIRE(i++->s == str);
 	}
-	REQUIRE(reached);
+	REQUIRE(thrown);
 }
 
 TEST_CASE("try_insert(pos,count,value)")
@@ -757,15 +759,15 @@ TEST_CASE("insert(pos,first,last) forward")
 
 TEST_CASE("insert(pos,first,last) forward throw")
 {
-	static unsigned counter = 3;
+	static unsigned counter = 4;
 	struct X
 	{
 		string s;
 
-		X(string s) : s(s)
+		X(char const* s) : s(s)
 		{}
 
-		X(X const&)
+		X(X const& x) : s(x.s)
 		{
 			if(!counter--)
 				throw TestException();
@@ -774,7 +776,7 @@ TEST_CASE("insert(pos,first,last) forward throw")
 		X(X&&) = default;
 	};
 
-	bool reached = false;
+	bool thrown = false;
 
 	FixedList<X, 9> l {"A", "B", "C"};
 	try
@@ -784,14 +786,14 @@ TEST_CASE("insert(pos,first,last) forward throw")
 	}
 	catch(TestException)
 	{
-		reached = true;
+		thrown = true;
 
 		array arr {"A", "B", "C"};
 		auto  i = l.begin();
 		for(auto str : arr)
 			REQUIRE(i++->s == str);
 	}
-	REQUIRE(reached);
+	REQUIRE(thrown);
 }
 
 TEST_CASE("try_insert(pos,first,last) forward")
@@ -858,25 +860,30 @@ TEST_CASE("insert(pos,first,last) input throw")
 	l.emplace_back("2");
 	l.emplace_back("3");
 
-	bool reached = false;
+	bool thrown = false;
 	try
 	{
 		l.insert(l.begin() + 2, it, {});
 	}
 	catch(TestException)
 	{
-		reached = true;
+		thrown = true;
 		REQUIRE(l.size() == 3);
 		REQUIRE(l[0].s == "1");
 		REQUIRE(l[1].s == "2");
 		REQUIRE(l[2].s == "3");
 	}
-	REQUIRE(reached);
+	REQUIRE(thrown);
 }
 
 struct InputTest
 {
 	string s;
+
+	InputTest() = default;
+
+	InputTest(char const* s) : s(s)
+	{}
 
 	friend istream& operator>>(istream& stream, InputTest& val)
 	{
@@ -920,15 +927,15 @@ TEST_CASE("insert(pos,init)")
 
 TEST_CASE("insert(pos,init) throw")
 {
-	static unsigned counter = 3;
+	static unsigned counter = 4;
 	struct X
 	{
 		string s;
 
-		X(string s) : s(s)
+		X(char const* s) : s(s)
 		{}
 
-		X(X const&)
+		X(X const& x) : s(x.s)
 		{
 			if(!counter--)
 				throw TestException();
@@ -937,7 +944,7 @@ TEST_CASE("insert(pos,init) throw")
 		X(X&&) = default;
 	};
 
-	bool reached = false;
+	bool thrown = false;
 
 	FixedList<X, 9> l {"A", "B", "C"};
 	try
@@ -946,14 +953,14 @@ TEST_CASE("insert(pos,init) throw")
 	}
 	catch(TestException)
 	{
-		reached = true;
+		thrown = true;
 
 		array arr {"A", "B", "C"};
 		auto  i = l.begin();
 		for(auto str : arr)
 			REQUIRE(i++->s == str);
 	}
-	REQUIRE(reached);
+	REQUIRE(thrown);
 }
 
 TEST_CASE("try_insert(pos,init)")
@@ -991,7 +998,7 @@ TEST_CASE("emplace throw")
 		}
 	};
 
-	bool reached = false;
+	bool thrown = false;
 
 	FixedList<X, 9> l {3, 4, 5};
 	try
@@ -1000,14 +1007,14 @@ TEST_CASE("emplace throw")
 	}
 	catch(TestException)
 	{
-		reached = true;
+		thrown = true;
 
 		array arr {3, 4, 5};
 		auto  i = l.begin();
 		for(int n : arr)
 			REQUIRE(i++->x == n);
 	}
-	REQUIRE(reached);
+	REQUIRE(thrown);
 }
 
 TEST_CASE("try_emplace")
@@ -1042,7 +1049,7 @@ TEST_CASE("emplace_back throw")
 		}
 	};
 
-	bool reached = false;
+	bool thrown = false;
 
 	FixedList<X, 9> l(5);
 	try
@@ -1051,7 +1058,7 @@ TEST_CASE("emplace_back throw")
 	}
 	catch(TestException)
 	{
-		reached = true;
+		thrown = true;
 
 		array arr {3, 3, 3, 3, 3};
 		auto  i = arr.begin();
@@ -1059,7 +1066,7 @@ TEST_CASE("emplace_back throw")
 			REQUIRE(*i++ == n.x);
 		REQUIRE(l.size() == 5);
 	}
-	REQUIRE(reached);
+	REQUIRE(thrown);
 }
 
 TEST_CASE("try_emplace_back")

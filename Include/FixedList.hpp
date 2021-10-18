@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include <algorithm>
 #include <compare>
@@ -249,8 +249,7 @@ namespace hh
 		}
 
 		// Creates a fixed list from an initializer list.
-		template<typename U>
-		FixedList(std::initializer_list<U> init) noexcept(std::is_nothrow_constructible_v<T, U const&>) :
+		FixedList(std::initializer_list<T> init) noexcept(std::is_nothrow_copy_constructible_v<T>) :
 			elem_count(static_cast<count_type>(init.size()))
 		{
 			HH_ASSERT(init.size() <= CAPACITY, "Size of initializer list exceeded capacity.");
@@ -515,7 +514,7 @@ namespace hh
 		// Replaces all elements in the container with the elements from the initializer list. The container remains empty if an
 		// exception is thrown during element construction. If the size of the range exceeds the capacity, an assert occurs when
 		// DEBUG is defined, otherwise the behavior is undefined.
-		template<typename U> void assign(std::initializer_list<U> init) noexcept(std::is_nothrow_constructible_v<T, U const&>)
+		void assign(std::initializer_list<T> init) noexcept(std::is_nothrow_copy_constructible_v<T>)
 		{
 			assign(init.begin(), init.end());
 		}
@@ -658,9 +657,8 @@ namespace hh
 		// empty, otherwise an iterator to the first inserted element. The container remains unaffected if an exception is
 		// thrown during element construction. If the container is out of capacity, an assert occurs when DEBUG is defined,
 		// otherwise the behavior is undefined.
-		template<typename U>
-		iterator insert(iterator pos, std::initializer_list<U> init) noexcept(
-			std::is_nothrow_move_constructible_v<T>&& std::is_nothrow_constructible_v<T, U const&>)
+		iterator insert(iterator pos, std::initializer_list<T> init) noexcept(
+			std::is_nothrow_move_constructible_v<T>&& std::is_nothrow_copy_constructible_v<T>)
 		{
 			return insert(pos, init.begin(), init.end());
 		}
@@ -668,9 +666,8 @@ namespace hh
 		// Tries to insert elements from the initializer list before the element at pos and returns the end iterator if the
 		// container would run out of capacity, otherwise pos if the initializer list is empty, otherwise an iterator to the
 		// first inserted element. The container remains unaffected if an exception is thrown during element construction.
-		template<typename U>
-		[[nodiscard]] iterator try_insert(iterator pos, std::initializer_list<U> init) noexcept(
-			std::is_nothrow_move_constructible_v<T>&& std::is_nothrow_constructible_v<T, U const&>)
+		[[nodiscard]] iterator try_insert(iterator pos, std::initializer_list<T> init) noexcept(
+			std::is_nothrow_move_constructible_v<T>&& std::is_nothrow_copy_constructible_v<T>)
 		{
 			return try_insert(pos, init.begin(), init.end());
 		}
