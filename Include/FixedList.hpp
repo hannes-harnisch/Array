@@ -980,33 +980,30 @@ namespace hh
 	};
 }
 
-namespace std
+template<typename FixedList> struct std::pointer_traits<hh::FixedListIterator<FixedList, true>>
 {
-	template<typename FixedList> struct pointer_traits<hh::FixedListIterator<FixedList, true>>
+	using pointer		  = hh::FixedListIterator<FixedList, true>;
+	using element_type	  = typename pointer::value_type const;
+	using difference_type = typename pointer::difference_type;
+
+	[[nodiscard]] static constexpr element_type* to_address(pointer it) noexcept
 	{
-		using pointer		  = hh::FixedListIterator<FixedList, true>;
-		using element_type	  = typename pointer::value_type const;
-		using difference_type = typename pointer::difference_type;
+		HH_ASSERT(it.list->data() <= it.ptr && it.ptr <= it.list->data() + it.list->size(),
+				  "Iterator is not within a validly addressable range.");
+		return it.ptr;
+	}
+};
 
-		[[nodiscard]] static constexpr element_type* to_address(pointer it) noexcept
-		{
-			HH_ASSERT(it.list->data() <= it.ptr && it.ptr <= it.list->data() + it.list->size(),
-					  "Iterator is not within a validly addressable range.");
-			return it.ptr;
-		}
-	};
+template<typename FixedList> struct std::pointer_traits<hh::FixedListIterator<FixedList, false>>
+{
+	using pointer		  = hh::FixedListIterator<FixedList, false>;
+	using element_type	  = typename pointer::value_type;
+	using difference_type = typename pointer::difference_type;
 
-	template<typename FixedList> struct pointer_traits<hh::FixedListIterator<FixedList, false>>
+	[[nodiscard]] static constexpr element_type* to_address(pointer it) noexcept
 	{
-		using pointer		  = hh::FixedListIterator<FixedList, false>;
-		using element_type	  = typename pointer::value_type;
-		using difference_type = typename pointer::difference_type;
-
-		[[nodiscard]] static constexpr element_type* to_address(pointer it) noexcept
-		{
-			HH_ASSERT(it.list->data() <= it.ptr && it.ptr <= it.list->data() + it.list->size(),
-					  "Iterator is not within a validly addressable range.");
-			return it.ptr;
-		}
-	};
-}
+		HH_ASSERT(it.list->data() <= it.ptr && it.ptr <= it.list->data() + it.list->size(),
+				  "Iterator is not within a validly addressable range.");
+		return it.ptr;
+	}
+};
