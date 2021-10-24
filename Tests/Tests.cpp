@@ -1,4 +1,4 @@
-#include "../Include/Array.hpp"
+﻿#include "../Include/Array.hpp"
 
 #include <random>
 #include <string>
@@ -36,7 +36,8 @@ TEST_CASE("ConstructorWithInitialValue")
 TEST_CASE("ConstructorWithInitializerList")
 {
 	std::initializer_list<unsigned char> const initializer_list = {3, 4, 5};
-	Array<unsigned char>					   a(25, initializer_list);
+
+	Array<unsigned char> a(25, initializer_list);
 
 	auto element = a.begin();
 	for(int value : initializer_list)

@@ -205,8 +205,9 @@ namespace hh
 		constexpr Array(size_type count, Allocator const& alloc = Allocator()) :
 			alloc_pair {alloc, allocate(count)}, count(count)
 		{
-			for(auto& element : *this)
-				AllocTraits::construct(alloc_pair, &element);
+			if constexpr(!std::is_trivially_default_constructible_v<T>)
+				for(auto& element : *this)
+					AllocTraits::construct(alloc_pair, &element);
 		}
 
 		template<typename U>
@@ -534,33 +535,30 @@ namespace hh
 	};
 }
 
-namespace std
+template<typename Array> struct std::pointer_traits<hh::ArrayIterator<Array, true>>
 {
-	template<typename Array> struct pointer_traits<hh::ArrayIterator<Array, true>>
+	using pointer		  = hh::ArrayIterator<Array, true>;
+	using element_type	  = typename pointer::value_type const;
+	using difference_type = typename pointer::difference_type;
+
+	[[nodiscard]] static constexpr element_type* to_address(pointer it) noexcept
 	{
-		using pointer		  = hh::ArrayIterator<Array, true>;
-		using element_type	  = typename pointer::value_type const;
-		using difference_type = typename pointer::difference_type;
+		HH_ASSERT(it.array->data() <= it.ptr && it.ptr <= it.array->data() + it.array->size(),
+				  "Iterator is not within a validly addressable range.");
+		return it.ptr;
+	}
+};
 
-		[[nodiscard]] static constexpr element_type* to_address(pointer it) noexcept
-		{
-			HH_ASSERT(it.array->data() <= it.ptr && it.ptr <= it.array->data() + it.array->size(),
-					  "Iterator is not within a validly addressable range.");
-			return it.ptr;
-		}
-	};
+template<typename Array> struct std::pointer_traits<hh::ArrayIterator<Array, false>>
+{
+	using pointer		  = hh::ArrayIterator<Array, false>;
+	using element_type	  = typename pointer::value_type;
+	using difference_type = typename pointer::difference_type;
 
-	template<typename Array> struct pointer_traits<hh::ArrayIterator<Array, false>>
+	[[nodiscard]] static constexpr element_type* to_address(pointer it) noexcept
 	{
-		using pointer		  = hh::ArrayIterator<Array, false>;
-		using element_type	  = typename pointer::value_type;
-		using difference_type = typename pointer::difference_type;
-
-		[[nodiscard]] static constexpr element_type* to_address(pointer it) noexcept
-		{
-			HH_ASSERT(it.array->data() <= it.ptr && it.ptr <= it.array->data() + it.array->size(),
-					  "Iterator is not within a validly addressable range.");
-			return it.ptr;
-		}
-	};
-}
+		HH_ASSERT(it.array->data() <= it.ptr && it.ptr <= it.array->data() + it.array->size(),
+				  "Iterator is not within a validly addressable range.");
+		return it.ptr;
+	}
+};
