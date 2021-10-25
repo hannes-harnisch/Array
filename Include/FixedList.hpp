@@ -872,7 +872,9 @@ namespace hh
 #endif
 		}
 
-		static void move_left_unchecked(T* src_begin, T* src_end, T* dst_begin)
+		static void move_left_unchecked(T* src_begin,
+										T* src_end,
+										T* dst_begin) noexcept(std::is_nothrow_move_constructible_v<T>)
 		{
 			if constexpr(std::is_trivially_move_constructible_v<T>)
 				std::memmove(dst_begin, src_begin, (src_end - src_begin) * sizeof(T));
@@ -881,7 +883,7 @@ namespace hh
 					std::construct_at(dst_begin++, std::move(*src_begin++));
 		}
 
-		static void move_right_unchecked(T* src_begin, T* src_end, T* dst_end)
+		static void move_right_unchecked(T* src_begin, T* src_end, T* dst_end) noexcept(std::is_nothrow_move_constructible_v<T>)
 		{
 			if constexpr(std::is_trivially_move_constructible_v<T>)
 			{
@@ -893,14 +895,16 @@ namespace hh
 					std::construct_at(--dst_end, std::move(*--src_end));
 		}
 
-		template<typename... Ts> T* push_unchecked(Ts&&... ts)
+		template<typename... Ts> T* push_unchecked(Ts&&... ts) noexcept(std::is_nothrow_constructible_v<T, Ts...>)
 		{
 			auto ptr = std::construct_at(data() + elem_count, std::forward<Ts>(ts)...);
 			++elem_count;
 			return ptr;
 		}
 
-		template<typename... Ts> T* emplace_unchecked(iterator pos, Ts&&... ts)
+		template<typename... Ts>
+		T* emplace_unchecked(iterator pos, Ts&&... ts) noexcept(
+			std::is_nothrow_move_constructible_v<T>&& std::is_nothrow_constructible_v<T, Ts...>)
 		{
 			auto pos_ptr = std::to_address(pos);
 			auto end_ptr = std::to_address(end());
@@ -914,12 +918,17 @@ namespace hh
 			}
 			catch(...)
 			{
-				move_left_unchecked(pos_ptr + 1, end_ptr + 1, pos_ptr);
-				throw;
+				if constexpr(!std::is_nothrow_move_constructible_v<T> || !std::is_nothrow_constructible_v<T, Ts...>)
+				{
+					move_left_unchecked(pos_ptr + 1, end_ptr + 1, pos_ptr);
+					throw; // This is only in this conditional because MSVC generates a false warning about throwing in a
+						   // noexcept function, despite it never actually being able to happen given the checks.
+				}
 			}
 		}
 
-		iterator insert_count_unchecked(iterator pos, size_t const count, T const& value)
+		iterator insert_count_unchecked(iterator pos, size_t const count, T const& value) noexcept(
+			std::is_nothrow_move_constructible_v<T>&& std::is_nothrow_copy_constructible_v<T>)
 		{
 			auto pos_ptr = std::to_address(pos);
 			auto end_ptr = std::to_address(end());
