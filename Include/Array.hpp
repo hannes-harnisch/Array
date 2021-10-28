@@ -36,9 +36,9 @@ namespace hh
 		using value_type		= typename Array::value_type;
 		using difference_type	= typename Array::difference_type;
 
-		ArrayIterator() = default;
+		constexpr ArrayIterator() = default;
 
-		operator ArrayIterator<Array, true>() const noexcept
+		constexpr operator ArrayIterator<Array, true>() const noexcept
 		{
 #if DEBUG
 			return {ptr, array};
@@ -47,80 +47,80 @@ namespace hh
 #endif
 		}
 
-		reference operator*() const noexcept
+		constexpr reference operator*() const noexcept
 		{
 			return *operator->();
 		}
 
-		pointer operator->() const noexcept
+		constexpr pointer operator->() const noexcept
 		{
 			HH_ASSERT(array->data() <= ptr && ptr < array->data() + array->size(),
 					  "Tried to dereference value-initialized or end iterator.");
 			return ptr;
 		}
 
-		template<bool CONST2> bool operator==(ArrayIterator<Array, CONST2> that) const noexcept
+		template<bool CONST2> constexpr bool operator==(ArrayIterator<Array, CONST2> that) const noexcept
 		{
 			return ptr == that.ptr;
 		}
 
-		template<bool CONST2> bool operator!=(ArrayIterator<Array, CONST2> that) const noexcept
+		template<bool CONST2> constexpr bool operator!=(ArrayIterator<Array, CONST2> that) const noexcept
 		{
 			return ptr != that.ptr;
 		}
 
-		template<bool CONST2> bool operator<(ArrayIterator<Array, CONST2> that) const noexcept
+		template<bool CONST2> constexpr bool operator<(ArrayIterator<Array, CONST2> that) const noexcept
 		{
 			return ptr < that.ptr;
 		}
 
-		template<bool CONST2> bool operator<=(ArrayIterator<Array, CONST2> that) const noexcept
+		template<bool CONST2> constexpr bool operator<=(ArrayIterator<Array, CONST2> that) const noexcept
 		{
 			return ptr <= that.ptr;
 		}
 
-		template<bool CONST2> bool operator>(ArrayIterator<Array, CONST2> that) const noexcept
+		template<bool CONST2> constexpr bool operator>(ArrayIterator<Array, CONST2> that) const noexcept
 		{
 			return ptr > that.ptr;
 		}
 
-		template<bool CONST2> bool operator>=(ArrayIterator<Array, CONST2> that) const noexcept
+		template<bool CONST2> constexpr bool operator>=(ArrayIterator<Array, CONST2> that) const noexcept
 		{
 			return ptr >= that.ptr;
 		}
 
 #ifdef __cpp_lib_three_way_comparison
-		template<bool CONST2> std::strong_ordering operator<=>(ArrayIterator<Array, CONST2> that) const noexcept
+		template<bool CONST2> constexpr std::strong_ordering operator<=>(ArrayIterator<Array, CONST2> that) const noexcept
 		{
 			return ptr <=> that.ptr;
 		}
 #endif
 
-		ArrayIterator& operator++() noexcept
+		constexpr ArrayIterator& operator++() noexcept
 		{
 			return *this += 1;
 		}
 
-		ArrayIterator operator++(int) noexcept
+		constexpr ArrayIterator operator++(int) noexcept
 		{
 			auto old = *this;
 			*this += 1;
 			return old;
 		}
 
-		ArrayIterator& operator--() noexcept
+		constexpr ArrayIterator& operator--() noexcept
 		{
 			return *this -= 1;
 		}
 
-		ArrayIterator operator--(int) noexcept
+		constexpr ArrayIterator operator--(int) noexcept
 		{
 			auto old = *this;
 			*this -= 1;
 			return old;
 		}
 
-		ArrayIterator& operator+=(difference_type offset) noexcept
+		constexpr ArrayIterator& operator+=(difference_type offset) noexcept
 		{
 			HH_ASSERT(offset == 0 || ptr, "Cannot offset value-initialized iterator.");
 			HH_ASSERT(offset >= 0 || offset >= array->data() - ptr, "Cannot offset list iterator before begin.");
@@ -130,34 +130,34 @@ namespace hh
 			return *this;
 		}
 
-		ArrayIterator operator+(difference_type offset) const noexcept
+		constexpr ArrayIterator operator+(difference_type offset) const noexcept
 		{
 			auto old = *this;
 			return old += offset;
 		}
 
-		friend ArrayIterator operator+(difference_type offset, ArrayIterator iterator) noexcept
+		friend constexpr ArrayIterator operator+(difference_type offset, ArrayIterator iterator) noexcept
 		{
 			return iterator + offset;
 		}
 
-		ArrayIterator& operator-=(difference_type offset) noexcept
+		constexpr ArrayIterator& operator-=(difference_type offset) noexcept
 		{
 			return *this += -offset;
 		}
 
-		ArrayIterator operator-(difference_type offset) const noexcept
+		constexpr ArrayIterator operator-(difference_type offset) const noexcept
 		{
 			auto old = *this;
 			return old -= offset;
 		}
 
-		template<bool CONST2> difference_type operator-(ArrayIterator<Array, CONST2> that) const noexcept
+		template<bool CONST2> constexpr difference_type operator-(ArrayIterator<Array, CONST2> that) const noexcept
 		{
 			return ptr - that.ptr;
 		}
 
-		reference operator[](difference_type offset) const noexcept
+		constexpr reference operator[](difference_type offset) const noexcept
 		{
 			return *(*this + offset);
 		}
@@ -167,10 +167,10 @@ namespace hh
 #if DEBUG
 		Array const* array = nullptr;
 
-		ArrayIterator(pointer ptr, Array const* arr) noexcept : ptr(ptr), array(arr)
+		constexpr ArrayIterator(pointer ptr, Array const* arr) noexcept : ptr(ptr), array(arr)
 		{}
 #else
-		ArrayIterator(pointer ptr) noexcept : ptr(ptr)
+		constexpr ArrayIterator(pointer ptr) noexcept : ptr(ptr)
 		{}
 #endif
 	};
@@ -187,6 +187,7 @@ namespace hh
 		using const_pointer			 = typename AllocTraits::const_pointer;
 		using size_type				 = typename AllocTraits::size_type;
 		using difference_type		 = typename AllocTraits::difference_type;
+		using allocator_type		 = Allocator;
 		using iterator				 = ArrayIterator<Array, false>;
 		using const_iterator		 = ArrayIterator<Array, true>;
 		using reverse_iterator		 = std::reverse_iterator<iterator>;
