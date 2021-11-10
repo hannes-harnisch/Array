@@ -531,7 +531,8 @@ namespace hh
 				for(auto& element : *this)
 					AllocTraits::destroy(alloc_pair, &element);
 
-			AllocTraits::deallocate(alloc_pair, data(), count);
+			if(data())
+				AllocTraits::deallocate(alloc_pair, data(), count);
 		}
 	};
 }

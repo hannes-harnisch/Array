@@ -22,8 +22,6 @@ TEST_CASE("DefaultConstructor")
 
 TEST_CASE("ConstructorWithInitialValue")
 {
-	constexpr char character = 'y';
-
 	Array<std::string> a(30, std::string(5, 'y'));
 	for(auto& str : a)
 		CHECK(str == "yyyyy");
