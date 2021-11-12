@@ -20,6 +20,17 @@ TEST_CASE("DefaultConstructor")
 	CHECK(a.data() == nullptr);
 }
 
+TEST_CASE("ConstructorWithCountZero")
+{
+	Array<int> a(0);
+
+	for([[maybe_unused]] int element : a)
+		CHECK(false); // Check that there are no elements.
+
+	CHECK(a.data() == nullptr);
+	CHECK(a.size() == 0);
+}
+
 TEST_CASE("ConstructorWithInitialValue")
 {
 	Array<std::string> a(30, std::string(5, 'y'));
