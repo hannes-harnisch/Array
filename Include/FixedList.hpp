@@ -717,6 +717,18 @@ namespace hh
 			return push_unchecked(std::forward<Ts>(ts)...);
 		}
 
+		// Appends a copy of the given value to the container. The container remains unaffected if an exception is thrown.
+		void push_back(T const& value) noexcept(std::is_nothrow_copy_constructible_v<T>)
+		{
+			emplace_back(value);
+		}
+
+		// Appends the given value to the container. The container remains unaffected if an exception is thrown.
+		void push_back(T&& value) noexcept(std::is_nothrow_move_constructible_v<T>)
+		{
+			emplace_back(std::move(value));
+		}
+
 		// Removes the last element from the container. If the container is empty, an assert occurs when DEBUG is defined,
 		// otherwise the behavior is undefined.
 		void pop_back() noexcept
