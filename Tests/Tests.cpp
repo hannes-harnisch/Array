@@ -208,7 +208,7 @@ TEST_CASE("ctor(move)")
 
 TEST_CASE("dtor")
 {
-	FixedList<int, 5>	 l1;
+	FixedList<int, 5> l1;
 	FixedList<string, 5> l2;
 
 	static_assert(is_trivially_destructible_v<decltype(l1)>);
@@ -663,7 +663,7 @@ TEST_CASE("insert(pos,value) throw")
 		thrown = true;
 
 		array arr {"1", "2", "3"};
-		auto  i = l.begin();
+		auto i = l.begin();
 		for(auto str : arr)
 			REQUIRE(i++->s == str);
 	}
@@ -726,7 +726,7 @@ TEST_CASE("insert(pos,count,value) throw")
 		thrown = true;
 
 		array arr {"1", "2", "3"};
-		auto  i = l.begin();
+		auto i = l.begin();
 		for(auto str : arr)
 			REQUIRE(i++->s == str);
 	}
@@ -789,7 +789,7 @@ TEST_CASE("insert(pos,first,last) forward throw")
 		thrown = true;
 
 		array arr {"A", "B", "C"};
-		auto  i = l.begin();
+		auto i = l.begin();
 		for(auto str : arr)
 			REQUIRE(i++->s == str);
 	}
@@ -956,7 +956,7 @@ TEST_CASE("insert(pos,init) throw")
 		thrown = true;
 
 		array arr {"A", "B", "C"};
-		auto  i = l.begin();
+		auto i = l.begin();
 		for(auto str : arr)
 			REQUIRE(i++->s == str);
 	}
@@ -1010,7 +1010,7 @@ TEST_CASE("emplace throw")
 		thrown = true;
 
 		array arr {3, 4, 5};
-		auto  i = l.begin();
+		auto i = l.begin();
 		for(int n : arr)
 			REQUIRE(i++->x == n);
 	}
@@ -1061,7 +1061,7 @@ TEST_CASE("emplace_back throw")
 		thrown = true;
 
 		array arr {3, 3, 3, 3, 3};
-		auto  i = arr.begin();
+		auto i = arr.begin();
 		for(X n : l)
 			REQUIRE(*i++ == n.x);
 		REQUIRE(l.size() == 5);
