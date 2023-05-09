@@ -1,15 +1,13 @@
-﻿#define HH_ASSERT(condition, message)                                                                                          \
+#define HH_ASSERT(condition, message)                                                                                          \
 	{                                                                                                                          \
-		if(!(condition))                                                                                                       \
-		{                                                                                                                      \
+		if (!(condition)) {                                                                                                    \
 			__debugbreak();                                                                                                    \
 			std::abort();                                                                                                      \
 		}                                                                                                                      \
 	}
 
-#include "../Include/FixedList.hpp"
+#include "../include/FixedList.hpp"
 
-#define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
 #include <doctest/doctest.h>
 
 using namespace hh;
@@ -17,52 +15,55 @@ using namespace hh;
 #include <array>
 #include <iostream>
 #include <memory>
+#include <sstream>
 #include <string>
 #include <vector>
 
 using namespace std;
 
-TEST_CASE("ctor()")
-{
+TEST_CASE("ctor()") {
 	FixedList<string, 5> l;
 	REQUIRE(l.count() == 0);
 
 	static_assert(is_nothrow_default_constructible_v<decltype(l)>);
 }
 
-TEST_CASE("ctor(count)")
-{
-	struct A
-	{
+TEST_CASE("ctor(count)") {
+	struct A {
 		string s = "ABC";
 	};
+
 	FixedList<A, 15> l(11);
 	REQUIRE(l.size() == 11);
 
-	for(auto& a : l)
+	for (auto& a : l)
 		REQUIRE(a.s == "ABC");
 }
 
-TEST_CASE("ctor(count,value)")
-{
-	constexpr auto atla =
-		"Water. Earth. Fire. Air. My grandmother used to tell me stories about the old days, a time of peace when the Avatar "
-		"kept balance between the Water Tribes, Earth Kingdom, Fire Nation, and Air Nomads. But that all changed when the Fire "
-		"Nation attacked. Only the Avatar mastered all four elements. Only he could stop the ruthless fire-benders. But when "
-		"the world needed him most, he vanished. A hundred years have passed and the Fire Nation is nearing victory in the "
-		"War. Two years ago, my father and the men of my tribe journeyed to the Earth Kingdom to help fight against the Fire "
-		"Nation, leaving me and my brother to look after our tribe. Some people believe that the Avatar was never reborn into "
-		"the Air Nomads, and that the cycle is broken. But I haven't lost hope. I still believe that somehow, the Avatar will "
-		"return to save the world.";
+TEST_CASE("ctor(count,value)") {
+	constexpr auto atla = "Water. Earth. Fire. Air. My grandmother used to tell me stories about the old days, a time of peace "
+						  "when the Avatar "
+						  "kept balance between the Water Tribes, Earth Kingdom, Fire Nation, and Air Nomads. But that all "
+						  "changed when the Fire "
+						  "Nation attacked. Only the Avatar mastered all four elements. Only he could stop the ruthless "
+						  "fire-benders. But when "
+						  "the world needed him most, he vanished. A hundred years have passed and the Fire Nation is nearing "
+						  "victory in the "
+						  "War. Two years ago, my father and the men of my tribe journeyed to the Earth Kingdom to help fight "
+						  "against the Fire "
+						  "Nation, leaving me and my brother to look after our tribe. Some people believe that the Avatar was "
+						  "never reborn into "
+						  "the Air Nomads, and that the cycle is broken. But I haven't lost hope. I still believe that "
+						  "somehow, the Avatar will "
+						  "return to save the world.";
 	FixedList<string, 15> l(11, atla);
 	REQUIRE(l.size() == 11);
 
-	for(auto& s : l)
+	for (auto& s : l)
 		REQUIRE(s == atla);
 }
 
-TEST_CASE("ctor(first,last) forward")
-{
+TEST_CASE("ctor(first,last) forward") {
 	vector<string> v {"E", "D", "C", "B", "A"};
 
 	FixedList<string, 15> l(v.begin(), v.end());
@@ -75,27 +76,25 @@ TEST_CASE("ctor(first,last) forward")
 	REQUIRE(l[4] == "A");
 }
 
-TEST_CASE("ctor(first,last) input")
-{
+TEST_CASE("ctor(first,last) input") {
 	static unsigned counter = 8;
-	struct I
-	{
+
+	struct I {
 		virtual ~I() = default;
 
 		virtual void fun() = 0;
 	};
-	struct X : I
-	{
-		~X()
-		{
+
+	struct X : I {
+		~X() {
 			--counter;
 		}
 
-		void fun() override
-		{
+		void fun() override {
 			--counter;
 		}
 	};
+
 	vector<unique_ptr<I>> v2;
 	v2.emplace_back(make_unique<X>());
 	v2.emplace_back(make_unique<X>());
@@ -108,7 +107,7 @@ TEST_CASE("ctor(first,last) input")
 		FixedList<unique_ptr<I>, 6> l2(move_begin, move_end);
 		REQUIRE(l2.size() == 4);
 
-		for(auto& p : l2)
+		for (auto& p : l2)
 			p->fun();
 
 		REQUIRE(counter == 4);
@@ -116,8 +115,7 @@ TEST_CASE("ctor(first,last) input")
 	REQUIRE(counter == 0);
 }
 
-TEST_CASE("ctor(init)")
-{
+TEST_CASE("ctor(init)") {
 	FixedList<string, 15> l {"1", "2", "3", "4", "5"};
 	REQUIRE(l.size() == 5);
 
@@ -128,16 +126,14 @@ TEST_CASE("ctor(init)")
 	REQUIRE(l[4] == "5");
 }
 
-TEST_CASE("ctor(copy)")
-{
+TEST_CASE("ctor(copy)") {
 	FixedList<string, 15> l1 {"1", "2", "3", "4", "5"};
 	FixedList<string, 15> l2 = l1;
 	REQUIRE(l1.size() == l2.size());
 
 	auto s2		= l2.begin();
 	bool thrown = false;
-	for(auto& s1 : l1)
-	{
+	for (auto& s1 : l1) {
 		thrown = true;
 		REQUIRE(s1 == *s2++);
 	}
@@ -149,8 +145,7 @@ TEST_CASE("ctor(copy)")
 
 	auto i = l3.begin();
 	thrown = false;
-	for(auto& s3 : l3)
-	{
+	for (auto& s3 : l3) {
 		thrown = true;
 		REQUIRE(s3 == *i++);
 	}
@@ -160,24 +155,21 @@ TEST_CASE("ctor(copy)")
 	static_assert(!is_trivially_copy_constructible_v<FixedList<string, 1>>);
 }
 
-TEST_CASE("ctor(move)")
-{
+TEST_CASE("ctor(move)") {
 	static unsigned counter = 10;
-	struct I
-	{
+
+	struct I {
 		virtual ~I() = default;
 
 		virtual void fun() = 0;
 	};
-	struct X : I
-	{
-		~X()
-		{
+
+	struct X : I {
+		~X() {
 			--counter;
 		}
 
-		void fun() override
-		{
+		void fun() override {
 			--counter;
 		}
 	};
@@ -194,7 +186,7 @@ TEST_CASE("ctor(move)")
 		FixedList<unique_ptr<I>, 15> l2 = move(l1);
 		REQUIRE(l2.size() == 5);
 
-		for(auto& i : l2)
+		for (auto& i : l2)
 			i->fun();
 
 		REQUIRE(counter == 5);
@@ -206,17 +198,15 @@ TEST_CASE("ctor(move)")
 	static_assert(!is_trivially_move_constructible_v<decltype(l1)>);
 }
 
-TEST_CASE("dtor")
-{
-	FixedList<int, 5> l1;
+TEST_CASE("dtor") {
+	FixedList<int, 5>	 l1;
 	FixedList<string, 5> l2;
 
 	static_assert(is_trivially_destructible_v<decltype(l1)>);
 	static_assert(!is_trivially_destructible_v<decltype(l2)>);
 }
 
-TEST_CASE("operator=(copy)")
-{
+TEST_CASE("operator=(copy)") {
 	FixedList<string, 3> l1 {"AA", "BB", "CC"};
 	FixedList<string, 3> l2 {"DD", "EE", "FF"};
 
@@ -231,24 +221,21 @@ TEST_CASE("operator=(copy)")
 	REQUIRE(l2[2] == "CC");
 }
 
-TEST_CASE("operator=(move)")
-{
+TEST_CASE("operator=(move)") {
 	static unsigned counter = 12;
-	struct I
-	{
+
+	struct I {
 		virtual ~I() = default;
 
 		virtual void fun() = 0;
 	};
-	struct X : I
-	{
-		~X()
-		{
+
+	struct X : I {
+		~X() {
 			--counter;
 		}
 
-		void fun() override
-		{
+		void fun() override {
 			--counter;
 		}
 	};
@@ -269,7 +256,7 @@ TEST_CASE("operator=(move)")
 		l2.emplace_back(make_unique<X>());
 		REQUIRE(l2.size() == 3);
 
-		for(auto& i : l2)
+		for (auto& i : l2)
 			i->fun();
 
 		l2 = move(l1);
@@ -279,29 +266,25 @@ TEST_CASE("operator=(move)")
 	REQUIRE(counter == 0);
 }
 
-TEST_CASE("operator==")
-{
+TEST_CASE("operator==") {
 	FixedList<string, 7> l1 {"9", "8", "7"};
 	FixedList<string, 7> l2 {"9", "8", "7"};
 	REQUIRE(l1 == l2);
 }
 
-TEST_CASE("operator!=")
-{
+TEST_CASE("operator!=") {
 	FixedList<string, 7> l1 {"9", "8", "7"};
 	FixedList<string, 7> l2 {"9", "6", "7"};
 	REQUIRE(l1 != l2);
 }
 
-TEST_CASE("operator<")
-{
+TEST_CASE("operator<") {
 	FixedList<string, 7> l1 {"A", "B", "C"};
 	FixedList<string, 7> l2 {"A", "B", "D"};
 	REQUIRE(l1 < l2);
 }
 
-TEST_CASE("operator<=")
-{
+TEST_CASE("operator<=") {
 	FixedList<string, 7> l1 {"A", "B", "C"};
 	FixedList<string, 7> l2 {"A", "B", "D"};
 	REQUIRE(l1 <= l2);
@@ -311,15 +294,13 @@ TEST_CASE("operator<=")
 	REQUIRE(l3 <= l4);
 }
 
-TEST_CASE("operator>")
-{
+TEST_CASE("operator>") {
 	FixedList<string, 7> l1 {"A", "B", "C"};
 	FixedList<string, 7> l2 {"A", "B", "B"};
 	REQUIRE(l1 > l2);
 }
 
-TEST_CASE("operator>=")
-{
+TEST_CASE("operator>=") {
 	FixedList<string, 7> l1 {"A", "B", "C"};
 	FixedList<string, 7> l2 {"A", "B", "B"};
 	REQUIRE(l1 >= l2);
@@ -329,8 +310,7 @@ TEST_CASE("operator>=")
 	REQUIRE(l3 >= l4);
 }
 
-TEST_CASE("operator<=>")
-{
+TEST_CASE("operator<=>") {
 	strong_ordering result;
 
 	FixedList<string, 7> l1 {"A", "B", "C"};
@@ -349,8 +329,7 @@ TEST_CASE("operator<=>")
 	REQUIRE(result == strong_ordering::less);
 }
 
-TEST_CASE("operator[]")
-{
+TEST_CASE("operator[]") {
 	FixedList<string, 7> l {"X", "Y", "Z"};
 	REQUIRE(l[2] == "Z");
 
@@ -358,21 +337,17 @@ TEST_CASE("operator[]")
 	REQUIRE(l[2] != "Z");
 	REQUIRE(l[2] == "_");
 
-	FixedList<string, 7> const l2 = {};
+	const FixedList<string, 7> l2 = {};
 	static_assert(is_const_v<remove_reference_t<decltype(l2[0])>>);
 }
 
-TEST_CASE("at")
-{
+TEST_CASE("at") {
 	FixedList<string, 7> l {"X", "Y", "Z"};
 
 	bool thrown = false;
-	try
-	{
+	try {
 		l.at(3);
-	}
-	catch(out_of_range)
-	{
+	} catch (out_of_range) {
 		thrown = true;
 	}
 	REQUIRE(thrown);
@@ -380,8 +355,7 @@ TEST_CASE("at")
 	REQUIRE(l.at(1) == "Y");
 }
 
-TEST_CASE("get")
-{
+TEST_CASE("get") {
 	FixedList<string, 7> l {"X", "Y", "Z"};
 
 	REQUIRE(l.get(3) == nullptr);
@@ -393,8 +367,7 @@ TEST_CASE("get")
 	REQUIRE(*l.get(1) == ".");
 }
 
-TEST_CASE("front")
-{
+TEST_CASE("front") {
 	FixedList<string, 7> l {"X", "Y", "Z"};
 
 	REQUIRE(l.front() == "X");
@@ -402,8 +375,7 @@ TEST_CASE("front")
 	REQUIRE(l.front() == "A");
 }
 
-TEST_CASE("back")
-{
+TEST_CASE("back") {
 	FixedList<string, 7> l {"X", "Y", "Z"};
 
 	REQUIRE(l.back() == "Z");
@@ -411,8 +383,7 @@ TEST_CASE("back")
 	REQUIRE(l.back() == "C");
 }
 
-TEST_CASE("assign(count,value)")
-{
+TEST_CASE("assign(count,value)") {
 	FixedList<string, 7> l {"X", "Y", "Z"};
 	REQUIRE(l[0] == "X");
 	REQUIRE(l[1] == "Y");
@@ -421,23 +392,20 @@ TEST_CASE("assign(count,value)")
 	l.assign(7, "...");
 
 	REQUIRE(l.size() == 7);
-	for(auto& s : l)
+	for (auto& s : l)
 		REQUIRE(s == "...");
 }
 
-class TestException : public std::exception
-{};
+class TestException : public std::exception {};
 
-TEST_CASE("assign(count,value) throw")
-{
+TEST_CASE("assign(count,value) throw") {
 	static unsigned counter = 2;
-	struct X
-	{
+
+	struct X {
 		X() = default;
 
-		X(X const&)
-		{
-			if(!counter--)
+		X(const X&) {
+			if (!counter--)
 				throw TestException();
 		}
 
@@ -447,20 +415,16 @@ TEST_CASE("assign(count,value) throw")
 	bool thrown = false;
 
 	FixedList<X, 9> l(3);
-	try
-	{
+	try {
 		l.assign(5, {});
-	}
-	catch(TestException)
-	{
+	} catch (TestException) {
 		thrown = true;
 		REQUIRE(l.empty());
 	}
 	REQUIRE(thrown);
 }
 
-TEST_CASE("assign(first,last) forward")
-{
+TEST_CASE("assign(first,last) forward") {
 	FixedList<string, 7> l {"X", "Y", "Z"};
 	REQUIRE(l[0] == "X");
 	REQUIRE(l[1] == "Y");
@@ -472,20 +436,18 @@ TEST_CASE("assign(first,last) forward")
 	REQUIRE(l.size() == 6);
 
 	auto vb = v.begin() + 1;
-	for(auto& s : l)
+	for (auto& s : l)
 		REQUIRE(s == *vb++);
 }
 
-TEST_CASE("assign(first,last) forward throw")
-{
+TEST_CASE("assign(first,last) forward throw") {
 	static unsigned counter = 2;
-	struct X
-	{
+
+	struct X {
 		X() = default;
 
-		X(X const&)
-		{
-			if(!counter--)
+		X(const X&) {
+			if (!counter--)
 				throw TestException();
 		}
 
@@ -496,20 +458,16 @@ TEST_CASE("assign(first,last) forward throw")
 
 	FixedList<X, 9> l(3);
 	FixedList<X, 9> l2(3);
-	try
-	{
+	try {
 		l.assign(l2.begin(), l2.end());
-	}
-	catch(TestException)
-	{
+	} catch (TestException) {
 		thrown = true;
 		REQUIRE(l.empty());
 	}
 	REQUIRE(thrown);
 }
 
-TEST_CASE("assign(first,last) input")
-{
+TEST_CASE("assign(first,last) input") {
 	vector<unique_ptr<string>> v;
 	v.emplace_back(make_unique<string>("A"));
 	v.emplace_back(make_unique<string>("B"));
@@ -532,16 +490,14 @@ TEST_CASE("assign(first,last) input")
 	REQUIRE(*l[2] == "D");
 }
 
-TEST_CASE("assign(first,last) input throw")
-{
+TEST_CASE("assign(first,last) input throw") {
 	static unsigned counter = 8;
-	struct X
-	{
+
+	struct X {
 		X() = default;
 
-		X(X&&)
-		{
-			if(!counter--)
+		X(X&&) {
+			if (!counter--)
 				throw TestException();
 		}
 	};
@@ -562,24 +518,20 @@ TEST_CASE("assign(first,last) input throw")
 	REQUIRE(l.size() == 3);
 
 	bool thrown = false;
-	try
-	{
+	try {
 		l.assign(move_begin, move_end);
-	}
-	catch(TestException)
-	{
+	} catch (TestException) {
 		thrown = true;
 		REQUIRE(l.empty());
 	}
 	REQUIRE(thrown);
 }
 
-TEST_CASE("assign(init)")
-{
+TEST_CASE("assign(init)") {
 	FixedList<string, 10> l(5);
 	REQUIRE(l.size() == 5);
 
-	for(auto& s : l)
+	for (auto& s : l)
 		REQUIRE(s.empty());
 
 	l.assign({"A", "B", "C"});
@@ -588,16 +540,14 @@ TEST_CASE("assign(init)")
 	REQUIRE(l[2] == "C");
 }
 
-TEST_CASE("assign(init) throw")
-{
+TEST_CASE("assign(init) throw") {
 	static unsigned counter = 1;
-	struct X
-	{
+
+	struct X {
 		X() = default;
 
-		X(X const&)
-		{
-			if(!counter--)
+		X(const X&) {
+			if (!counter--)
 				throw TestException();
 		}
 
@@ -607,20 +557,16 @@ TEST_CASE("assign(init) throw")
 	bool thrown = false;
 
 	FixedList<X, 9> l(3);
-	try
-	{
+	try {
 		l.assign({X(), X(), X()});
-	}
-	catch(TestException)
-	{
+	} catch (TestException) {
 		thrown = true;
 		REQUIRE(l.empty());
 	}
 	REQUIRE(thrown);
 }
 
-TEST_CASE("insert(pos,value)")
-{
+TEST_CASE("insert(pos,value)") {
 	FixedList<string, 11> l {"A", "B", "D", "E"};
 
 	auto it = l.insert(l.begin() + 2, "C");
@@ -631,19 +577,19 @@ TEST_CASE("insert(pos,value)")
 	REQUIRE(l == arr);
 }
 
-TEST_CASE("insert(pos,value) throw")
-{
+TEST_CASE("insert(pos,value) throw") {
 	static unsigned counter = 3;
-	struct X
-	{
+
+	struct X {
 		string s;
 
-		X(char const* s) : s(s)
-		{}
+		X(const char* s) :
+			s(s) {
+		}
 
-		X(X const& x) : s(x.s)
-		{
-			if(!counter--)
+		X(const X& x) :
+			s(x.s) {
+			if (!counter--)
 				throw TestException();
 		}
 
@@ -653,33 +599,28 @@ TEST_CASE("insert(pos,value) throw")
 	bool thrown = false;
 
 	FixedList<X, 9> l {"1", "2", "3"};
-	try
-	{
+	try {
 		X x("NOPE");
 		l.insert(l.begin(), x); // Info: This line currently causes the false warning about unreachable code in MSVC.
-	}
-	catch(TestException)
-	{
+	} catch (TestException) {
 		thrown = true;
 
 		array arr {"1", "2", "3"};
-		auto i = l.begin();
-		for(auto str : arr)
+		auto  i = l.begin();
+		for (auto str : arr)
 			REQUIRE(i++->s == str);
 	}
 	REQUIRE(thrown);
 }
 
-TEST_CASE("try_insert(pos,value)")
-{
+TEST_CASE("try_insert(pos,value)") {
 	FixedList<string, 4> l {"A", "B", "D", "E"};
 
 	auto it = l.try_insert(l.begin(), "C");
 	REQUIRE(it == l.end());
 }
 
-TEST_CASE("insert(pos,count,value)")
-{
+TEST_CASE("insert(pos,count,value)") {
 	FixedList<string, 11> l {"A", "B", "C"};
 
 	auto it = l.insert(l.begin() + 3, 5, "D");
@@ -694,19 +635,19 @@ TEST_CASE("insert(pos,count,value)")
 	REQUIRE(l == arr);
 }
 
-TEST_CASE("insert(pos,count,value) throw")
-{
+TEST_CASE("insert(pos,count,value) throw") {
 	static unsigned counter = 4;
-	struct X
-	{
+
+	struct X {
 		string s;
 
-		X(char const* s) : s(s)
-		{}
+		X(const char* s) :
+			s(s) {
+		}
 
-		X(X const& x) : s(x.s)
-		{
-			if(!counter--)
+		X(const X& x) :
+			s(x.s) {
+			if (!counter--)
 				throw TestException();
 		}
 
@@ -716,33 +657,28 @@ TEST_CASE("insert(pos,count,value) throw")
 	bool thrown = false;
 
 	FixedList<X, 9> l {"1", "2", "3"};
-	try
-	{
+	try {
 		X x("6");
 		l.insert(l.begin(), 5, x);
-	}
-	catch(TestException)
-	{
+	} catch (TestException) {
 		thrown = true;
 
 		array arr {"1", "2", "3"};
-		auto i = l.begin();
-		for(auto str : arr)
+		auto  i = l.begin();
+		for (auto str : arr)
 			REQUIRE(i++->s == str);
 	}
 	REQUIRE(thrown);
 }
 
-TEST_CASE("try_insert(pos,count,value)")
-{
+TEST_CASE("try_insert(pos,count,value)") {
 	FixedList<string, 8> l {"B", "C", "D", "E"};
 
 	auto it = l.try_insert(l.begin(), 5, "A");
 	REQUIRE(it == l.end());
 }
 
-TEST_CASE("insert(pos,first,last) forward")
-{
+TEST_CASE("insert(pos,first,last) forward") {
 	FixedList<string, 15> l;
 	l.emplace_back("AAA");
 	l.emplace_back("BBB");
@@ -757,19 +693,19 @@ TEST_CASE("insert(pos,first,last) forward")
 	REQUIRE(*it == "A");
 }
 
-TEST_CASE("insert(pos,first,last) forward throw")
-{
+TEST_CASE("insert(pos,first,last) forward throw") {
 	static unsigned counter = 4;
-	struct X
-	{
+
+	struct X {
 		string s;
 
-		X(char const* s) : s(s)
-		{}
+		X(const char* s) :
+			s(s) {
+		}
 
-		X(X const& x) : s(x.s)
-		{
-			if(!counter--)
+		X(const X& x) :
+			s(x.s) {
+			if (!counter--)
 				throw TestException();
 		}
 
@@ -779,25 +715,21 @@ TEST_CASE("insert(pos,first,last) forward throw")
 	bool thrown = false;
 
 	FixedList<X, 9> l {"A", "B", "C"};
-	try
-	{
+	try {
 		vector v {X("ok"), X("ok"), X("no"), X("oops"), X("well...")};
 		l.insert(l.begin(), v.begin(), v.end() - 2);
-	}
-	catch(TestException)
-	{
+	} catch (TestException) {
 		thrown = true;
 
 		array arr {"A", "B", "C"};
-		auto i = l.begin();
-		for(auto str : arr)
+		auto  i = l.begin();
+		for (auto str : arr)
 			REQUIRE(i++->s == str);
 	}
 	REQUIRE(thrown);
 }
 
-TEST_CASE("try_insert(pos,first,last) forward")
-{
+TEST_CASE("try_insert(pos,first,last) forward") {
 	FixedList<string, 8> l {"A", "E", "F", "G", "H", "I"};
 
 	vector<string> v {"A", "B", "C", "D", "E", "F"};
@@ -806,8 +738,7 @@ TEST_CASE("try_insert(pos,first,last) forward")
 	REQUIRE(it == l.end());
 }
 
-TEST_CASE("insert(pos,first,last) input")
-{
+TEST_CASE("insert(pos,first,last) input") {
 	vector<unique_ptr<string>> v;
 	v.emplace_back(make_unique<string>("B"));
 	v.emplace_back(make_unique<string>("C"));
@@ -834,23 +765,20 @@ TEST_CASE("insert(pos,first,last) input")
 	REQUIRE(*l[5] == "F");
 }
 
-struct InputThrowTest
-{
+struct InputThrowTest {
 	static inline unsigned counter = 4;
 
 	string s;
 
-	friend istream& operator>>(istream& stream, InputThrowTest& val)
-	{
-		if(!counter--)
+	friend istream& operator>>(istream& stream, InputThrowTest& val) {
+		if (!counter--)
 			throw TestException();
 
 		return stream >> val.s;
 	}
 };
 
-TEST_CASE("insert(pos,first,last) input throw")
-{
+TEST_CASE("insert(pos,first,last) input throw") {
 	istringstream stream("1 2 3 4 5 6");
 
 	istream_iterator<InputThrowTest> it(stream);
@@ -861,12 +789,9 @@ TEST_CASE("insert(pos,first,last) input throw")
 	l.emplace_back("3");
 
 	bool thrown = false;
-	try
-	{
+	try {
 		l.insert(l.begin() + 2, it, {});
-	}
-	catch(TestException)
-	{
+	} catch (TestException) {
 		thrown = true;
 		REQUIRE(l.size() == 3);
 		REQUIRE(l[0].s == "1");
@@ -876,23 +801,21 @@ TEST_CASE("insert(pos,first,last) input throw")
 	REQUIRE(thrown);
 }
 
-struct InputTest
-{
+struct InputTest {
 	string s;
 
 	InputTest() = default;
 
-	InputTest(char const* s) : s(s)
-	{}
+	InputTest(const char* s) :
+		s(s) {
+	}
 
-	friend istream& operator>>(istream& stream, InputTest& val)
-	{
+	friend istream& operator>>(istream& stream, InputTest& val) {
 		return stream >> val.s;
 	}
 };
 
-TEST_CASE("try_insert(pos,first,last) input")
-{
+TEST_CASE("try_insert(pos,first,last) input") {
 	FixedList<InputTest, 8> l {"A", "B", "C", "D", "E", "F"};
 
 	istringstream stream("1 2 3 4 5 6");
@@ -910,8 +833,7 @@ TEST_CASE("try_insert(pos,first,last) input")
 	REQUIRE(l[5].s == "F");
 }
 
-TEST_CASE("insert(pos,init)")
-{
+TEST_CASE("insert(pos,init)") {
 	FixedList<string, 15> l {"AAA", "BBB", "CCC"};
 
 	auto it = l.insert(l.begin() + 3, {"A", "B", "C"});
@@ -925,19 +847,19 @@ TEST_CASE("insert(pos,init)")
 	REQUIRE(*it == "A");
 }
 
-TEST_CASE("insert(pos,init) throw")
-{
+TEST_CASE("insert(pos,init) throw") {
 	static unsigned counter = 4;
-	struct X
-	{
+
+	struct X {
 		string s;
 
-		X(char const* s) : s(s)
-		{}
+		X(const char* s) :
+			s(s) {
+		}
 
-		X(X const& x) : s(x.s)
-		{
-			if(!counter--)
+		X(const X& x) :
+			s(x.s) {
+			if (!counter--)
 				throw TestException();
 		}
 
@@ -947,32 +869,27 @@ TEST_CASE("insert(pos,init) throw")
 	bool thrown = false;
 
 	FixedList<X, 9> l {"A", "B", "C"};
-	try
-	{
+	try {
 		l.insert(l.begin(), {X("ok"), X("ok"), X("no"), X("oops"), X("well...")});
-	}
-	catch(TestException)
-	{
+	} catch (TestException) {
 		thrown = true;
 
 		array arr {"A", "B", "C"};
-		auto i = l.begin();
-		for(auto str : arr)
+		auto  i = l.begin();
+		for (auto str : arr)
 			REQUIRE(i++->s == str);
 	}
 	REQUIRE(thrown);
 }
 
-TEST_CASE("try_insert(pos,init)")
-{
+TEST_CASE("try_insert(pos,init)") {
 	FixedList<string, 8> l {"A", "E", "F", "G", "H", "I"};
 
 	auto it = l.try_insert(l.begin() + 1, {"A", "B", "C", "D", "E", "F"});
 	REQUIRE(it == l.end());
 }
 
-TEST_CASE("emplace")
-{
+TEST_CASE("emplace") {
 	FixedList<string, 5> l {"AAA", "BBB", "CCC"};
 
 	auto it = l.emplace(l.begin() + 1, "XXX");
@@ -984,16 +901,15 @@ TEST_CASE("emplace")
 	REQUIRE(l.size() == 4);
 }
 
-TEST_CASE("emplace throw")
-{
+TEST_CASE("emplace throw") {
 	static unsigned counter = 3;
-	struct X
-	{
+
+	struct X {
 		int x;
 
-		X(int x) : x(x)
-		{
-			if(!counter--)
+		X(int x) :
+			x(x) {
+			if (!counter--)
 				throw TestException();
 		}
 	};
@@ -1001,32 +917,27 @@ TEST_CASE("emplace throw")
 	bool thrown = false;
 
 	FixedList<X, 9> l {3, 4, 5};
-	try
-	{
+	try {
 		l.emplace(l.begin(), 999);
-	}
-	catch(TestException)
-	{
+	} catch (TestException) {
 		thrown = true;
 
 		array arr {3, 4, 5};
-		auto i = l.begin();
-		for(int n : arr)
+		auto  i = l.begin();
+		for (int n : arr)
 			REQUIRE(i++->x == n);
 	}
 	REQUIRE(thrown);
 }
 
-TEST_CASE("try_emplace")
-{
+TEST_CASE("try_emplace") {
 	FixedList<string, 5> l {"AAA", "BBB", "CCC", "DDD", "EEE"};
 
 	auto it = l.try_emplace(l.begin() + 1, "XXX");
 	REQUIRE(it == l.end());
 }
 
-TEST_CASE("emplace_back")
-{
+TEST_CASE("emplace_back") {
 	FixedList<string, 5> l {"AAA", "BBB", "CCC", "DDD"};
 
 	auto& elem = l.emplace_back("EEE");
@@ -1035,16 +946,13 @@ TEST_CASE("emplace_back")
 	REQUIRE(l.size() == 5);
 }
 
-TEST_CASE("emplace_back throw")
-{
-	struct X
-	{
+TEST_CASE("emplace_back throw") {
+	struct X {
 		int x = 3;
 
 		X() = default;
 
-		X(int)
-		{
+		X(int) {
 			throw TestException();
 		}
 	};
@@ -1052,33 +960,28 @@ TEST_CASE("emplace_back throw")
 	bool thrown = false;
 
 	FixedList<X, 9> l(5);
-	try
-	{
+	try {
 		l.emplace_back(-1);
-	}
-	catch(TestException)
-	{
+	} catch (TestException) {
 		thrown = true;
 
 		array arr {3, 3, 3, 3, 3};
-		auto i = arr.begin();
-		for(X n : l)
+		auto  i = arr.begin();
+		for (X n : l)
 			REQUIRE(*i++ == n.x);
 		REQUIRE(l.size() == 5);
 	}
 	REQUIRE(thrown);
 }
 
-TEST_CASE("try_emplace_back")
-{
+TEST_CASE("try_emplace_back") {
 	FixedList<string, 5> l {"AAA", "BBB", "CCC", "DDD", "EEE"};
 
 	auto it = l.try_emplace_back("XXX");
 	REQUIRE(!it);
 }
 
-TEST_CASE("pop_back")
-{
+TEST_CASE("pop_back") {
 	FixedList<string, 5> l {"AAA", "BBB", "CCC", "DDD", "EEE"};
 
 	l.pop_back();
@@ -1089,8 +992,7 @@ TEST_CASE("pop_back")
 	REQUIRE(l[3] == "DDD");
 }
 
-TEST_CASE("try_pop_back")
-{
+TEST_CASE("try_pop_back") {
 	FixedList<string, 5> l {"AAA", "BBB", "CCC", "DDD", "EEE"};
 
 	REQUIRE(l.try_pop_back());
@@ -1101,8 +1003,7 @@ TEST_CASE("try_pop_back")
 	REQUIRE(!l.try_pop_back());
 }
 
-TEST_CASE("erase(pos)")
-{
+TEST_CASE("erase(pos)") {
 	FixedList<int, 10> l {2, 3, 4, 5, 6, 7, 8, 9};
 
 	auto it = l.erase(l.begin() + 2);
@@ -1111,8 +1012,7 @@ TEST_CASE("erase(pos)")
 	REQUIRE(l[2] == 5);
 }
 
-TEST_CASE("erase(first,last)")
-{
+TEST_CASE("erase(first,last)") {
 	FixedList<int, 10> l {2, 3, 4, 5, 6, 7, 8, 9};
 
 	auto it = l.erase(l.begin() + 2, l.end());
@@ -1122,16 +1022,15 @@ TEST_CASE("erase(first,last)")
 	REQUIRE(it == l.end());
 }
 
-TEST_CASE("clear")
-{
+TEST_CASE("clear") {
 	static unsigned counter = 4;
-	struct X
-	{
-		~X()
-		{
+
+	struct X {
+		~X() {
 			--counter;
 		}
 	};
+
 	FixedList<X, 5> l(4);
 
 	l.clear();

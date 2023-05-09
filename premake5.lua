@@ -1,4 +1,4 @@
-workspace 'FixedList'
+workspace 'Array'
 	architecture		'x64'
 	configurations		{ 'Debug', 'Release' }
 	flags				{ 'MultiProcessorCompile' }
@@ -16,12 +16,10 @@ project 'Tests'
 	objdir				('.bin_int/' .. outputdir .. '/%{prj.name}')
 	targetdir			('.bin/'	 .. outputdir .. '/%{prj.name}')
 	files				{
-							'Include/FixedList.hpp',
-							'Include/FixedList.natvis',
-							'Tests/Tests.cpp',
-							'Tests/doctest/doctest/doctest.h'
+							'include/**',
+							'tests/*'
 						}
-	includedirs			'Tests/doctest/'
+	includedirs			'tests/doctest'
 
 	filter 'configurations:Debug'
 		runtime			'Debug'
