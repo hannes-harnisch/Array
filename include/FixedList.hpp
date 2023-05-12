@@ -1,172 +1,18 @@
 #pragma once
 
+#include "ContiguousIterator.hpp"
+
 #include <algorithm>
 #include <compare>
 #include <cstddef>
 #include <initializer_list>
-#include <iterator>
 #include <limits>
-#include <memory>
 #include <new>
 #include <stdexcept>
 #include <type_traits>
 #include <utility>
 
-#ifndef HH_ASSERT
-	#include <cassert>
-	#define HH_ASSERT(condition, message) assert((condition) && (message))
-#endif
-
-#if !DEBUG
-	#undef HH_ASSERT
-	#define HH_ASSERT(condition, message)
-#endif
-
 namespace hh {
-
-template<typename FixedList, bool CONST>
-class FixedListIterator {
-	friend FixedList;
-
-	template<typename, bool>
-	friend class FixedListIterator;
-
-	template<typename>
-	friend struct std::pointer_traits;
-
-public:
-	using iterator_concept = std::contiguous_iterator_tag;
-	using pointer		   = std::conditional_t<CONST, typename FixedList::const_pointer, typename FixedList::pointer>;
-	using reference		   = std::conditional_t<CONST, typename FixedList::const_reference, typename FixedList::reference>;
-	using value_type	   = typename FixedList::value_type;
-	using difference_type  = typename FixedList::difference_type;
-
-	FixedListIterator() = default;
-
-	operator FixedListIterator<FixedList, true>() const noexcept {
-#if DEBUG
-		return {ptr, list};
-#else
-		return {ptr};
-#endif
-	}
-
-	reference operator*() const noexcept {
-		return *operator->();
-	}
-
-	pointer operator->() const noexcept {
-		HH_ASSERT(list->data() <= ptr && ptr < list->data() + list->size(), "Tried to dereference value-initialized or end "
-																			"iterator.");
-		return ptr;
-	}
-
-	template<bool CONST2>
-	bool operator==(FixedListIterator<FixedList, CONST2> that) const noexcept {
-		return ptr == that.ptr;
-	}
-
-	template<bool CONST2>
-	bool operator!=(FixedListIterator<FixedList, CONST2> that) const noexcept {
-		return ptr != that.ptr;
-	}
-
-	template<bool CONST2>
-	bool operator<(FixedListIterator<FixedList, CONST2> that) const noexcept {
-		return ptr < that.ptr;
-	}
-
-	template<bool CONST2>
-	bool operator<=(FixedListIterator<FixedList, CONST2> that) const noexcept {
-		return ptr <= that.ptr;
-	}
-
-	template<bool CONST2>
-	bool operator>(FixedListIterator<FixedList, CONST2> that) const noexcept {
-		return ptr > that.ptr;
-	}
-
-	template<bool CONST2>
-	bool operator>=(FixedListIterator<FixedList, CONST2> that) const noexcept {
-		return ptr >= that.ptr;
-	}
-
-	template<bool CONST2>
-	std::strong_ordering operator<=>(FixedListIterator<FixedList, CONST2> that) const noexcept {
-		return ptr <=> that.ptr;
-	}
-
-	FixedListIterator& operator++() noexcept {
-		return *this += 1;
-	}
-
-	FixedListIterator operator++(int) noexcept {
-		auto old = *this;
-		*this += 1;
-		return old;
-	}
-
-	FixedListIterator& operator--() noexcept {
-		return *this -= 1;
-	}
-
-	FixedListIterator operator--(int) noexcept {
-		auto old = *this;
-		*this -= 1;
-		return old;
-	}
-
-	FixedListIterator& operator+=(difference_type offset) noexcept {
-		HH_ASSERT(offset == 0 || ptr, "Cannot offset value-initialized iterator.");
-		HH_ASSERT(offset >= 0 || offset >= list->data() - ptr, "Cannot offset list iterator before begin.");
-		HH_ASSERT(offset <= 0 || offset <= list->data() + list->size() - ptr, "Cannot offset list iterator past end.");
-
-		ptr += offset;
-		return *this;
-	}
-
-	FixedListIterator operator+(difference_type offset) const noexcept {
-		auto old = *this;
-		return old += offset;
-	}
-
-	friend FixedListIterator operator+(difference_type offset, FixedListIterator iterator) noexcept {
-		return iterator + offset;
-	}
-
-	FixedListIterator& operator-=(difference_type offset) noexcept {
-		return *this += -offset;
-	}
-
-	FixedListIterator operator-(difference_type offset) const noexcept {
-		auto old = *this;
-		return old -= offset;
-	}
-
-	template<bool CONST2>
-	difference_type operator-(FixedListIterator<FixedList, CONST2> that) const noexcept {
-		return ptr - that.ptr;
-	}
-
-	reference operator[](difference_type offset) const noexcept {
-		return *(*this + offset);
-	}
-
-private:
-	pointer ptr = nullptr;
-#if DEBUG
-	const FixedList* list = nullptr;
-
-	FixedListIterator(pointer ptr, const FixedList* list) noexcept :
-		ptr(ptr),
-		list(list) {
-	}
-#else
-	FixedListIterator(pointer ptr) noexcept :
-		ptr(ptr) {
-	}
-#endif
-};
 
 // Dynamic array with compile-time fixed capacity. Uses no internal dynamic allocation.
 template<typename T, size_t CAPACITY>
@@ -189,8 +35,8 @@ public:
 						   uint16_t,
 						   std::conditional_t<alignof(T) <= alignof(uint32_t), uint32_t, uint64_t>>>;
 
-	using iterator				 = FixedListIterator<FixedList, false>;
-	using const_iterator		 = FixedListIterator<FixedList, true>;
+	using iterator				 = ContiguousIterator<T, ptrdiff_t, T*, const T*>;
+	using const_iterator		 = ContiguousConstIterator<T, ptrdiff_t, T*, const T*>;
 	using reverse_iterator		 = std::reverse_iterator<iterator>;
 	using const_reverse_iterator = std::reverse_iterator<const_iterator>;
 
@@ -792,10 +638,10 @@ private:
 	template<typename S>
 	static auto make_iterator([[maybe_unused]] S self, auto position) noexcept
 		-> std::conditional_t<std::is_const_v<std::remove_pointer_t<S>>, const_iterator, iterator> {
-#if DEBUG
-		return {position, self};
+#ifdef HH_DEBUG
+		return {const_cast<T*>(position), self};
 #else
-		return {position};
+		return {const_cast<T*>(position)};
 #endif
 	}
 
@@ -897,29 +743,3 @@ private:
 };
 
 } // namespace hh
-
-template<typename FixedList>
-struct std::pointer_traits<hh::FixedListIterator<FixedList, true>> {
-	using pointer		  = hh::FixedListIterator<FixedList, true>;
-	using element_type	  = typename pointer::value_type const;
-	using difference_type = typename pointer::difference_type;
-
-	[[nodiscard]] static constexpr element_type* to_address(pointer it) noexcept {
-		HH_ASSERT(it.list->data() <= it.ptr && it.ptr <= it.list->data() + it.list->size(), "Iterator is not within a validly "
-																							"addressable range.");
-		return it.ptr;
-	}
-};
-
-template<typename FixedList>
-struct std::pointer_traits<hh::FixedListIterator<FixedList, false>> {
-	using pointer		  = hh::FixedListIterator<FixedList, false>;
-	using element_type	  = typename pointer::value_type;
-	using difference_type = typename pointer::difference_type;
-
-	[[nodiscard]] static constexpr element_type* to_address(pointer it) noexcept {
-		HH_ASSERT(it.list->data() <= it.ptr && it.ptr <= it.list->data() + it.list->size(), "Iterator is not within a validly "
-																							"addressable range.");
-		return it.ptr;
-	}
-};

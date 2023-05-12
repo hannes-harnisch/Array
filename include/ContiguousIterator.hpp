@@ -7,30 +7,38 @@
 	#include <compare>
 #endif
 
+#ifndef HH_ASSERT
+	#include <cassert>
+	#define HH_ASSERT(condition, message) assert((condition) && (message))
+#endif
+
+#ifndef HH_DEBUG
+	#undef HH_ASSERT
+	#define HH_ASSERT(condition, message)
+#endif
+
 namespace hh {
 
 #ifdef HH_DEBUG
 struct IteratorDebugBase {};
 #endif
 
-template<typename Value, typename Diff, typename Ptr>
+template<typename T, typename Diff, typename Ptr, typename ConstPtr>
 class ContiguousConstIterator
 #ifdef HH_DEBUG
 	: private IteratorDebugBase
 #endif
 {
-	template<typename, typename, typename>
-	friend class ContiguousIterator;
 
 public:
 #ifdef __cpp_lib_concepts
 	using iterator_concept = std::contiguous_iterator_tag;
 #endif
 	using iterator_category = std::random_access_iterator_tag;
-	using value_type		= Value;
+	using value_type		= T;
 	using difference_type	= Diff;
-	using pointer			= Ptr;
-	using reference			= const Value&;
+	using pointer			= ConstPtr;
+	using reference			= const T&;
 
 	constexpr ContiguousConstIterator() noexcept :
 		ptr() {
@@ -191,14 +199,14 @@ public:
 #endif
 
 private:
-	pointer ptr;
+	Ptr ptr;
 
-	constexpr ContiguousConstIterator(pointer ptr) noexcept :
+	constexpr ContiguousConstIterator(Ptr ptr) noexcept :
 		ptr(ptr) {
 	}
 
 #ifdef HH_DEBUG
-	constexpr ContiguousConstIterator(pointer ptr, const ContainerDebugBase* base) noexcept :
+	constexpr ContiguousConstIterator(Ptr ptr, const ContainerDebugBase* base) noexcept :
 		ptr(ptr) {
 	}
 
@@ -218,21 +226,33 @@ private:
 	void assert_compatible(const ContiguousConstIterator& other) const noexcept {
 	}
 #endif
+
+	template<typename, typename, typename, typename>
+	friend class ContiguousIterator;
+
+	template<typename>
+	friend struct std::pointer_traits;
+
+	template<typename, typename>
+	friend class VarArray;
+
+	template<typename, size_t>
+	friend class FixedList;
 };
 
-template<typename Value, typename Diff, typename Ptr>
-class ContiguousIterator : public ContiguousConstIterator<Value, Diff, Ptr> {
-	using Base = ContiguousConstIterator<Value, Diff, Ptr>;
+template<typename T, typename Diff, typename Ptr, typename ConstPtr>
+class ContiguousIterator : public ContiguousConstIterator<T, Diff, Ptr, ConstPtr> {
+	using Base = ContiguousConstIterator<T, Diff, Ptr, ConstPtr>;
 
 public:
 #ifdef __cpp_lib_concepts
 	using iterator_concept = std::contiguous_iterator_tag;
 #endif
 	using iterator_category = std::random_access_iterator_tag;
-	using value_type		= Value;
+	using value_type		= T;
 	using difference_type	= Diff;
 	using pointer			= Ptr;
-	using reference			= Value&;
+	using reference			= T&;
 
 	using Base::Base;
 
@@ -307,9 +327,9 @@ public:
 
 } // namespace hh
 
-template<typename Value, typename Diff, typename Ptr>
-struct std::pointer_traits<hh::ContiguousConstIterator<Value, Diff, Ptr>> {
-	using pointer		  = hh::ContiguousConstIterator<Value, Diff, Ptr>;
+template<typename T, typename Diff, typename Ptr, typename ConstPtr>
+struct std::pointer_traits<hh::ContiguousConstIterator<T, Diff, Ptr, ConstPtr>> {
+	using pointer		  = hh::ContiguousConstIterator<T, Diff, Ptr, ConstPtr>;
 	using element_type	  = const typename pointer::value_type;
 	using difference_type = typename pointer::difference_type;
 
@@ -320,9 +340,9 @@ struct std::pointer_traits<hh::ContiguousConstIterator<Value, Diff, Ptr>> {
 	}
 };
 
-template<typename Value, typename Diff, typename Ptr>
-struct std::pointer_traits<hh::ContiguousIterator<Value, Diff, Ptr>> {
-	using pointer		  = hh::ContiguousIterator<Value, Diff, Ptr>;
+template<typename T, typename Diff, typename Ptr, typename ConstPtr>
+struct std::pointer_traits<hh::ContiguousIterator<T, Diff, Ptr, ConstPtr>> {
+	using pointer		  = hh::ContiguousIterator<T, Diff, Ptr, ConstPtr>;
 	using element_type	  = typename pointer::value_type;
 	using difference_type = typename pointer::difference_type;
 
