@@ -1,3 +1,4 @@
+#define HH_DEBUG
 #include "../include/VarArray.hpp"
 
 #include <doctest/doctest.h>
@@ -12,8 +13,6 @@ TEST_CASE("DefaultConstructor") {
 
 	for ([[maybe_unused]] int element : a)
 		CHECK(false); // Check that there are no elements.
-
-	static_assert(sizeof a == sizeof(void*) + sizeof(size_t));
 
 	CHECK(a.data() == nullptr);
 }

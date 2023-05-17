@@ -1,11 +1,4 @@
-#define HH_ASSERT(condition, message)                                                                                          \
-	{                                                                                                                          \
-		if (!(condition)) {                                                                                                    \
-			__debugbreak();                                                                                                    \
-			std::abort();                                                                                                      \
-		}                                                                                                                      \
-	}
-
+#define HH_DEBUG
 #include "../include/FixedList.hpp"
 
 #include <doctest/doctest.h>
@@ -42,20 +35,14 @@ TEST_CASE("ctor(count)") {
 
 TEST_CASE("ctor(count,value)") {
 	constexpr auto atla = "Water. Earth. Fire. Air. My grandmother used to tell me stories about the old days, a time of peace "
-						  "when the Avatar "
-						  "kept balance between the Water Tribes, Earth Kingdom, Fire Nation, and Air Nomads. But that all "
-						  "changed when the Fire "
-						  "Nation attacked. Only the Avatar mastered all four elements. Only he could stop the ruthless "
-						  "fire-benders. But when "
-						  "the world needed him most, he vanished. A hundred years have passed and the Fire Nation is nearing "
-						  "victory in the "
-						  "War. Two years ago, my father and the men of my tribe journeyed to the Earth Kingdom to help fight "
-						  "against the Fire "
+						  "when the Avatar kept balance between the Water Tribes, Earth Kingdom, Fire Nation, and Air Nomads. "
+						  "But that all changed when the Fire Nation attacked. Only the Avatar mastered all four elements. "
+						  "Only he could stop the ruthless fire-benders. But when the world needed him most, he vanished. A "
+						  "hundred years have passed and the Fire Nation is nearing victory in the War. Two years ago, my "
+						  "father and the men of my tribe journeyed to the Earth Kingdom to help fight against the Fire "
 						  "Nation, leaving me and my brother to look after our tribe. Some people believe that the Avatar was "
-						  "never reborn into "
-						  "the Air Nomads, and that the cycle is broken. But I haven't lost hope. I still believe that "
-						  "somehow, the Avatar will "
-						  "return to save the world.";
+						  "never reborn into the Air Nomads, and that the cycle is broken. But I haven't lost hope. I still "
+						  "believe that somehow, the Avatar will return to save the world.";
 	FixedList<string, 15> l(11, atla);
 	REQUIRE(l.size() == 11);
 
@@ -150,9 +137,6 @@ TEST_CASE("ctor(copy)") {
 		REQUIRE(s3 == *i++);
 	}
 	REQUIRE(thrown);
-
-	static_assert(is_trivially_copy_constructible_v<FixedList<int, 1>>);
-	static_assert(!is_trivially_copy_constructible_v<FixedList<string, 1>>);
 }
 
 TEST_CASE("ctor(move)") {
@@ -193,17 +177,11 @@ TEST_CASE("ctor(move)") {
 	}
 
 	REQUIRE(counter == 0);
-
-	static_assert(is_trivially_move_constructible_v<FixedList<int, 1>>);
-	static_assert(!is_trivially_move_constructible_v<decltype(l1)>);
 }
 
 TEST_CASE("dtor") {
 	FixedList<int, 5>	 l1;
 	FixedList<string, 5> l2;
-
-	static_assert(is_trivially_destructible_v<decltype(l1)>);
-	static_assert(!is_trivially_destructible_v<decltype(l2)>);
 }
 
 TEST_CASE("operator=(copy)") {

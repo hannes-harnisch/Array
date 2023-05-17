@@ -16,10 +16,16 @@ namespace hh {
 
 // Dynamic array with compile-time fixed capacity. Uses no internal dynamic allocation.
 template<typename T, size_t CAPACITY>
-class FixedList {
-public:
+class FixedList
+#ifdef HH_DEBUG
+	: private ContainerDebugBase
+#endif
+{
+	friend IteratorDebugBase;
+
 	static_assert(!std::is_const_v<T>, "Const value types are not supported. Make the fixed list itself const instead.");
 
+public:
 	using value_type	  = T;
 	using reference		  = T&;
 	using const_reference = const T&;
@@ -639,7 +645,7 @@ private:
 	static auto make_iterator([[maybe_unused]] S self, auto position) noexcept
 		-> std::conditional_t<std::is_const_v<std::remove_pointer_t<S>>, const_iterator, iterator> {
 #ifdef HH_DEBUG
-		return {const_cast<T*>(position), self};
+		return {const_cast<T*>(position), *self};
 #else
 		return {const_cast<T*>(position)};
 #endif

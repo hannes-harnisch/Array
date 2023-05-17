@@ -11,7 +11,13 @@
 namespace hh {
 
 template<typename T, typename Allocator = std::allocator<T>>
-class VarArray {
+class VarArray
+#ifdef HH_DEBUG
+	: private ContainerDebugBase
+#endif
+{
+	friend IteratorDebugBase;
+
 	using AllocTraits = std::allocator_traits<Allocator>;
 
 public:
@@ -219,7 +225,7 @@ public:
 
 	constexpr iterator begin() noexcept {
 #ifdef HH_DEBUG
-		return {data(), this};
+		return {alloc_pair.array, *this};
 #else
 		return {alloc_pair.array};
 #endif
@@ -227,7 +233,7 @@ public:
 
 	constexpr const_iterator begin() const noexcept {
 #ifdef HH_DEBUG
-		return {data(), this};
+		return {alloc_pair.array, *this};
 #else
 		return {alloc_pair.array};
 #endif
@@ -235,7 +241,7 @@ public:
 
 	constexpr iterator end() noexcept {
 #ifdef HH_DEBUG
-		return {data() + count, this};
+		return {alloc_pair.array + count, *this};
 #else
 		return {alloc_pair.array + count};
 #endif
@@ -243,7 +249,7 @@ public:
 
 	constexpr const_iterator end() const noexcept {
 #ifdef HH_DEBUG
-		return {data() + count, this};
+		return {alloc_pair.array + count, *this};
 #else
 		return {alloc_pair.array + count};
 #endif
