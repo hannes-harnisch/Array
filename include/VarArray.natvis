@@ -1,12 +1,12 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <AutoVisualizer xmlns="http://schemas.microsoft.com/vstudio/debugger/natvis/2010">
 	<Type Name="hh::VarArray&lt;*&gt;">
 		<DisplayString>{{ size={count} }}</DisplayString>
 		<Expand>
-			<Item Name="allocator">($T2)alloc_pair</Item>
+			<Item Name="allocator">($T2)alloc</Item>
 			<ArrayItems>
 				<Size>count</Size>
-				<ValuePointer>alloc_pair.array</ValuePointer>
+				<ValuePointer>alloc.storage</ValuePointer>
 			</ArrayItems>
 		</Expand>
 	</Type>

@@ -18,11 +18,9 @@ namespace hh {
 template<typename T, size_t CAPACITY>
 class FixedList
 #ifdef HH_DEBUG
-	: private ContainerDebugBase
+	: public ContainerDebugBase
 #endif
 {
-	friend IteratorDebugBase;
-
 	static_assert(!std::is_const_v<T>, "Const value types are not supported. Make the fixed list itself const instead.");
 
 public:

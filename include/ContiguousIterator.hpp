@@ -2,6 +2,7 @@
 
 #include <iterator>
 #include <memory>
+#include <type_traits>
 
 #ifdef __cpp_lib_three_way_comparison
 	#include <compare>

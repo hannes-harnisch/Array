@@ -7,7 +7,7 @@ workspace 'Array'
 outputdir = '%{cfg.buildcfg}_%{cfg.architecture}_%{cfg.system}'
 
 project 'Tests'
-	location			'Tests'
+	location			''
 	kind				'ConsoleApp'
 	language			'C++'
 	cppdialect			'C++20'
