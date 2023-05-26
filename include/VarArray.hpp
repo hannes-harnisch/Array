@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Common.hpp"
 #include "ContiguousIterator.hpp"
 
 #include <algorithm>
@@ -45,11 +46,12 @@ public:
 		count(count) {
 		const pointer storage = AllocTraits::allocate(alloc, count);
 
-		if constexpr (std::is_trivially_default_constructible_v<T>) // TODO, construct method?
-			std::memset(storage, 0, sizeof(T) * count);
+		// TODO: allocator construct method check
+		if constexpr (is_memset_value_constructible<T>)
+			std::memset(std::to_address(storage), 0, sizeof(T) * count);
 		else {
-			pointer		  dst = storage;
-			const pointer end = dst + count;
+			T*		 dst = std::to_address(storage);
+			T* const end = dst + count;
 			try {
 				for (; dst != end; ++dst)
 					AllocTraits::construct(alloc, dst);
@@ -66,17 +68,18 @@ public:
 		alloc.storage = storage;
 	}
 
-	constexpr VarArray(size_type count, const T& value, const Allocator& allocator = Allocator()) :
+	template<typename U>
+	constexpr VarArray(size_type count, const U& value, const Allocator& allocator = Allocator()) :
 		alloc {allocator},
 		count(count) {
-		T* storage = AllocTraits::allocate(alloc, count);
+		const pointer storage = AllocTraits::allocate(alloc, count);
 
-		if constexpr (std::is_trivially_copyable_v<T> && sizeof(T) == 1) {
+		if constexpr (std::is_trivially_constructible_v<T, U> && sizeof(T) == 1 && sizeof(U) == 1) {
 			int byte;
 			std::memcpy(&byte, &value, 1);
-			std::memset(storage, byte, sizeof(T) * count);
+			std::memset(std::to_address(storage), byte, sizeof(T) * count);
 		} else {
-			T*		 dst = storage;
+			T*		 dst = std::to_address(storage);
 			T* const end = dst + count;
 			try {
 				for (; dst != end; ++dst)
@@ -97,43 +100,119 @@ public:
 	constexpr VarArray(size_type count, std::initializer_list<T> initializers, const Allocator& allocator = Allocator()) :
 		alloc {allocator},
 		count(count) {
-		HH_ASSERT(count >= initializers.size(), "Size of initializer list exceeds array size.");
+		const pointer storage		 = AllocTraits::allocate(alloc, count);
+		const size_t  init_list_size = initializers.size();
+		const size_t  init_count	 = init_list_size < count ? init_list_size : count;
 
-		alloc.storage = AllocTraits::allocate(alloc, count);
-		auto element  = begin();
-		for (auto init : initializers)
-			AllocTraits::construct(alloc, &*element++, std::move(init));
+		T* dst = std::to_address(storage);
+		if constexpr (std::is_trivially_copyable_v<T>) {
+			std::memcpy(dst, initializers.begin(), sizeof(T) * init_count);
+		} else {
+			const T* src = initializers.begin();
+			T* const end = dst + init_count;
+			try {
+				for (; dst != end; ++dst, ++src)
+					AllocTraits::construct(alloc, dst, *src);
+			} catch (...) {
+				T* const begin = end - init_count;
+				while (dst != begin) {
+					--dst;
+					AllocTraits::destroy(alloc, dst);
+				}
+				AllocTraits::deallocate(alloc, storage, count);
+				throw;
+			}
+		}
 
-		auto offset = static_cast<typename iterator::difference_type>(initializers.size());
-		for (auto rest = begin() + offset; rest != end(); ++rest)
-			AllocTraits::construct(alloc, &*rest);
+		const size_t rest = count - init_count;
+		if constexpr (is_memset_value_constructible<T>)
+			std::memset(dst, 0, sizeof(T) * rest);
+		else {
+			T* const end = dst + rest;
+			try {
+				for (; dst != end; ++dst)
+					AllocTraits::construct(alloc, dst);
+			} catch (...) {
+				T* const begin = end - count;
+				while (dst != begin) {
+					--dst;
+					AllocTraits::destroy(alloc, dst);
+				}
+				AllocTraits::deallocate(alloc, storage, count);
+				throw;
+			}
+		}
+		alloc.storage = storage;
 	}
 
-	template<typename U, typename V>
+	template<typename U>
 	constexpr VarArray(size_type				count,
-					   std::initializer_list<U> initializers,
-					   const V&					fallback,
+					   std::initializer_list<T> initializers,
+					   const U&					fallback,
 					   const Allocator&			allocator = Allocator()) :
-		VarArray(count, initializers, allocator) {
-		auto offset = static_cast<typename iterator::difference_type>(initializers.size());
-		for (auto element = begin() + offset; element != end(); ++element)
-			AllocTraits::construct(alloc, &*element, fallback);
+		alloc {allocator},
+		count(count) {
+		const pointer storage		 = AllocTraits::allocate(alloc, count);
+		const size_t  init_list_size = initializers.size();
+		const size_t  init_count	 = init_list_size < count ? init_list_size : count;
+
+		T* dst = std::to_address(storage);
+		if constexpr (std::is_trivially_copyable_v<T>) {
+			std::memcpy(dst, initializers.begin(), sizeof(T) * init_count);
+		} else {
+			const T* src = initializers.begin();
+			T* const end = dst + init_count;
+			try {
+				for (; dst != end; ++dst, ++src)
+					AllocTraits::construct(alloc, dst, *src);
+			} catch (...) {
+				T* const begin = end - init_count;
+				while (dst != begin) {
+					--dst;
+					AllocTraits::destroy(alloc, dst);
+				}
+				AllocTraits::deallocate(alloc, storage, count);
+				throw;
+			}
+		}
+
+		const size_t rest = count - init_count;
+		if constexpr (std::is_trivially_constructible_v<T, U> && sizeof(T) == 1 && sizeof(U) == 1) {
+			int byte;
+			std::memcpy(&byte, &fallback, 1);
+			std::memset(dst, byte, sizeof(T) * rest);
+		} else {
+			T* const end = dst + rest;
+			try {
+				for (; dst != end; ++dst)
+					AllocTraits::construct(alloc, dst, fallback);
+			} catch (...) {
+				T* const begin = end - count;
+				while (dst != begin) {
+					--dst;
+					AllocTraits::destroy(alloc, dst);
+				}
+				AllocTraits::deallocate(alloc, storage, count);
+				throw;
+			}
+		}
+		alloc.storage = storage;
 	}
 
-	constexpr VarArray(const VarArray& that) :
-		alloc {AllocTraits::select_on_container_copy_construction(that.alloc)},
-		count(that.count) {
+	constexpr VarArray(const VarArray& other) :
+		alloc {AllocTraits::select_on_container_copy_construction(other.alloc)},
+		count(other.count) {
 		alloc.storage = AllocTraits::allocate(alloc, count);
-		auto other	  = that.begin();
+		auto other	  = other.begin();
 		for (auto& element : *this)
 			AllocTraits::construct(alloc, &element, *other++);
 	}
 
-	constexpr VarArray(VarArray&& that) noexcept :
-		alloc {std::move(that.alloc)},
-		count(that.count) {
-		alloc.storage	   = that.alloc.storage;
-		that.alloc.storage = {};
+	constexpr VarArray(VarArray&& other) noexcept :
+		alloc {std::move(other.alloc)},
+		count(other.count) {
+		alloc.storage		= other.alloc.storage;
+		other.alloc.storage = {};
 	}
 
 	constexpr ~VarArray() {
@@ -257,6 +336,10 @@ public:
 
 	constexpr const_pointer data() const noexcept {
 		return alloc.storage;
+	}
+
+	constexpr allocator_type get_allocator() const noexcept {
+		return static_cast<allocator_type>(alloc);
 	}
 
 	template<typename U>
