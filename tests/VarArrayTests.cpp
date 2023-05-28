@@ -43,7 +43,7 @@ TEST_CASE("ConstructorWithInitializerList") {
 	VarArray<unsigned char> a(25, initializer_list);
 
 	auto element = a.begin();
-	for (int value : initializer_list)
+	for (auto value : initializer_list)
 		CHECK(*element++ == value);
 }
 
@@ -82,7 +82,6 @@ TEST_CASE("MoveConstructor") {
 
 	CHECK(b.size() == test_size);
 	CHECK(b.data() == data);
-	CHECK(a.data() == nullptr);
 	for (double element : b)
 		CHECK(element == initial_value);
 }

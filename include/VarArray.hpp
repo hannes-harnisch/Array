@@ -107,6 +107,7 @@ public:
 		T* dst = std::to_address(storage);
 		if constexpr (std::is_trivially_copyable_v<T>) {
 			std::memcpy(dst, initializers.begin(), sizeof(T) * init_count);
+			dst += init_count;
 		} else {
 			const T* src = initializers.begin();
 			T* const end = dst + init_count;
@@ -159,6 +160,7 @@ public:
 		T* dst = std::to_address(storage);
 		if constexpr (std::is_trivially_copyable_v<T>) {
 			std::memcpy(dst, initializers.begin(), sizeof(T) * init_count);
+			dst += init_count;
 		} else {
 			const T* src = initializers.begin();
 			T* const end = dst + init_count;
@@ -202,21 +204,39 @@ public:
 	constexpr VarArray(const VarArray& other) :
 		alloc {AllocTraits::select_on_container_copy_construction(other.alloc)},
 		count(other.count) {
-		alloc.storage = AllocTraits::allocate(alloc, count);
-		auto other	  = other.begin();
-		for (auto& element : *this)
-			AllocTraits::construct(alloc, &element, *other++);
+		const pointer storage = AllocTraits::allocate(alloc, count);
+
+		T*		 dst = std::to_address(storage);
+		const T* src = std::to_address(other.alloc.storage);
+		if constexpr (std::is_trivially_copyable_v<T>) {
+			std::memcpy(dst, src, sizeof(T) * count);
+		} else {
+			T* const end = dst + count;
+			try {
+				for (; dst != end; ++dst, ++src)
+					AllocTraits::construct(alloc, dst, *src);
+			} catch (...) {
+				T* const begin = end - count;
+				while (dst != begin) {
+					--dst;
+					AllocTraits::destroy(alloc, dst);
+				}
+				AllocTraits::deallocate(alloc, storage, count);
+				throw;
+			}
+		}
+		alloc.storage = storage;
 	}
 
 	constexpr VarArray(VarArray&& other) noexcept :
 		alloc {std::move(other.alloc)},
 		count(other.count) {
 		alloc.storage		= other.alloc.storage;
-		other.alloc.storage = {};
+		other.alloc.storage = nullptr;
 	}
 
 	constexpr ~VarArray() {
-		destruct();
+		delete_data();
 	}
 
 	constexpr VarArray& operator=(VarArray that) noexcept {
@@ -348,8 +368,8 @@ public:
 	}
 
 	constexpr void reset() noexcept {
-		destruct();
-		alloc.storage = {};
+		delete_data();
+		alloc.storage = nullptr;
 		count		  = 0;
 	}
 
@@ -433,13 +453,15 @@ private:
 
 	size_type count = {};
 
-	constexpr void destruct() noexcept {
-		if constexpr (!std::is_trivially_destructible_v<value_type>)
-			for (auto& element : *this)
-				AllocTraits::destroy(alloc, &element);
+	constexpr void delete_data() noexcept {
+		if constexpr (!std::is_trivially_destructible_v<T>) {
+			T* it  = std::to_address(alloc.storage);
+			T* end = it + count;
+			for (; it != end; ++it)
+				AllocTraits::destroy(alloc, it);
+		}
 
-		if (data())
-			AllocTraits::deallocate(alloc, data(), count);
+		AllocTraits::deallocate(alloc, alloc.storage, count);
 	}
 };
 
