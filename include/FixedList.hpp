@@ -17,7 +17,7 @@ namespace hh {
 // Dynamic array with compile-time fixed capacity. Uses no internal dynamic allocation.
 template<typename T, size_t CAPACITY>
 class FixedList
-#ifdef HH_DEBUG
+#ifndef NDEBUG
 	: public ContainerDebugBase
 #endif
 {
@@ -642,8 +642,8 @@ private:
 	template<typename S>
 	static auto make_iterator([[maybe_unused]] S self, auto position) noexcept
 		-> std::conditional_t<std::is_const_v<std::remove_pointer_t<S>>, const_iterator, iterator> {
-#ifdef HH_DEBUG
-		return {const_cast<T*>(position), *self};
+#ifndef NDEBUG
+		return {const_cast<T*>(position), self};
 #else
 		return {const_cast<T*>(position)};
 #endif

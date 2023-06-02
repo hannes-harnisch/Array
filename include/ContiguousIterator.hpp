@@ -13,7 +13,7 @@
 	#define HH_ASSERT(condition, message) assert((condition) && (message))
 #endif
 
-#ifdef HH_DEBUG
+#ifndef NDEBUG
 	#include <shared_mutex>
 #else
 	#undef HH_ASSERT
@@ -22,7 +22,7 @@
 
 namespace hh {
 
-#ifdef HH_DEBUG
+#ifndef NDEBUG
 class ContainerDebugBase {
 	friend class IteratorDebugBase;
 
@@ -109,8 +109,8 @@ protected:
 	constexpr IteratorDebugBase() noexcept = default;
 
 	template<typename C>
-	constexpr IteratorDebugBase(const C& container) noexcept :
-		parent(&container),
+	constexpr IteratorDebugBase(const C* container) noexcept :
+		parent(container),
 		range_getter(get_range_from<C>) {
 		adopt_current_parent();
 	}
@@ -221,7 +221,7 @@ constexpr void ContainerDebugBase::update_iterators_no_lock() const noexcept {
 
 template<typename T, typename Diff, typename Ptr, typename ConstPtr>
 class ContiguousConstIterator
-#ifdef HH_DEBUG
+#ifndef NDEBUG
 	: private IteratorDebugBase
 #endif
 {
@@ -242,21 +242,21 @@ public:
 	}
 
 	constexpr const T& operator*() const noexcept {
-#ifdef HH_DEBUG
+#ifndef NDEBUG
 		assert_deref();
 #endif
 		return *ptr;
 	}
 
 	constexpr pointer operator->() const noexcept {
-#ifdef HH_DEBUG
+#ifndef NDEBUG
 		assert_deref();
 #endif
 		return ptr;
 	}
 
 	constexpr ContiguousConstIterator& operator++() noexcept {
-#ifdef HH_DEBUG
+#ifndef NDEBUG
 		assert_increment();
 #endif
 		++ptr;
@@ -265,7 +265,7 @@ public:
 
 	constexpr ContiguousConstIterator operator++(int) noexcept {
 		ContiguousConstIterator old = *this;
-#ifdef HH_DEBUG
+#ifndef NDEBUG
 		assert_increment();
 #endif
 		++ptr;
@@ -273,7 +273,7 @@ public:
 	}
 
 	constexpr ContiguousConstIterator& operator--() noexcept {
-#ifdef HH_DEBUG
+#ifndef NDEBUG
 		assert_decrement();
 #endif
 		--ptr;
@@ -282,7 +282,7 @@ public:
 
 	constexpr ContiguousConstIterator operator--(int) noexcept {
 		ContiguousConstIterator old = *this;
-#ifdef HH_DEBUG
+#ifndef NDEBUG
 		assert_decrement();
 #endif
 		--ptr;
@@ -290,7 +290,7 @@ public:
 	}
 
 	constexpr ContiguousConstIterator& operator+=(difference_type offset) noexcept {
-#ifdef HH_DEBUG
+#ifndef NDEBUG
 		assert_offset(offset);
 #endif
 		ptr += offset;
@@ -298,7 +298,7 @@ public:
 	}
 
 	constexpr ContiguousConstIterator operator+(difference_type offset) const noexcept {
-#ifdef HH_DEBUG
+#ifndef NDEBUG
 		assert_offset(offset);
 #endif
 		ContiguousConstIterator copy = *this;
@@ -307,7 +307,7 @@ public:
 	}
 
 	friend constexpr ContiguousConstIterator operator+(difference_type offset, ContiguousConstIterator it) noexcept {
-#ifdef HH_DEBUG
+#ifndef NDEBUG
 		it.assert_offset(offset);
 #endif
 		it.ptr += offset;
@@ -315,7 +315,7 @@ public:
 	}
 
 	constexpr ContiguousConstIterator& operator-=(difference_type offset) noexcept {
-#ifdef HH_DEBUG
+#ifndef NDEBUG
 		assert_offset(-offset);
 #endif
 		ptr -= offset;
@@ -323,7 +323,7 @@ public:
 	}
 
 	constexpr ContiguousConstIterator operator-(difference_type offset) const noexcept {
-#ifdef HH_DEBUG
+#ifndef NDEBUG
 		assert_offset(-offset);
 #endif
 		ContiguousConstIterator copy = *this;
@@ -332,56 +332,56 @@ public:
 	}
 
 	constexpr difference_type operator-(ContiguousConstIterator other) const noexcept {
-#ifdef HH_DEBUG
+#ifndef NDEBUG
 		assert_compatible(other);
 #endif
 		return ptr - other.ptr;
 	}
 
 	constexpr const T& operator[](difference_type offset) const noexcept {
-#ifdef HH_DEBUG
+#ifndef NDEBUG
 		assert_offset(offset);
 #endif
 		return ptr[offset];
 	}
 
 	constexpr bool operator==(ContiguousConstIterator other) const noexcept {
-#ifdef HH_DEBUG
+#ifndef NDEBUG
 		assert_compatible(other);
 #endif
 		return ptr == other.ptr;
 	}
 
 	constexpr bool operator!=(ContiguousConstIterator other) const noexcept {
-#ifdef HH_DEBUG
+#ifndef NDEBUG
 		assert_compatible(other);
 #endif
 		return ptr != other.ptr;
 	}
 
 	constexpr bool operator<(ContiguousConstIterator other) const noexcept {
-#ifdef HH_DEBUG
+#ifndef NDEBUG
 		assert_compatible(other);
 #endif
 		return ptr < other.ptr;
 	}
 
 	constexpr bool operator>(ContiguousConstIterator other) const noexcept {
-#ifdef HH_DEBUG
+#ifndef NDEBUG
 		assert_compatible(other);
 #endif
 		return ptr > other.ptr;
 	}
 
 	constexpr bool operator<=(ContiguousConstIterator other) const noexcept {
-#ifdef HH_DEBUG
+#ifndef NDEBUG
 		assert_compatible(other);
 #endif
 		return ptr <= other.ptr;
 	}
 
 	constexpr bool operator>=(ContiguousConstIterator other) const noexcept {
-#ifdef HH_DEBUG
+#ifndef NDEBUG
 		assert_compatible(other);
 #endif
 		return ptr >= other.ptr;
@@ -389,7 +389,7 @@ public:
 
 #ifdef __cpp_lib_three_way_comparison
 	constexpr std::strong_ordering operator<=>(ContiguousConstIterator other) const noexcept {
-	#ifdef HH_DEBUG
+	#ifndef NDEBUG
 		assert_compatible(other);
 	#endif
 		return ptr <=> other.ptr;
@@ -401,9 +401,9 @@ private:
 		ptr(ptr) {
 	}
 
-#ifdef HH_DEBUG
+#ifndef NDEBUG
 	template<typename T>
-	constexpr ContiguousConstIterator(Ptr ptr, const T& container) noexcept :
+	constexpr ContiguousConstIterator(Ptr ptr, const T* container) noexcept :
 		IteratorDebugBase(container),
 		ptr(ptr) {
 	}
@@ -473,7 +473,7 @@ public:
 	}
 
 	constexpr pointer operator->() const noexcept {
-#ifdef HH_DEBUG
+#ifndef NDEBUG
 		this->assert_deref();
 #endif
 		return this->ptr;

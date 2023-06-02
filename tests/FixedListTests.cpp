@@ -1,4 +1,3 @@
-#define HH_DEBUG
 #include "../include/FixedList.hpp"
 
 #include <doctest/doctest.h>

@@ -11,18 +11,18 @@
 
 namespace hh {
 
-template<typename T, typename AllocatorType = std::allocator<T>>
-class VarArray
-#ifdef HH_DEBUG
-	: public ContainerDebugBase
+// A variable-length fixed-size dynamically allocated array.
+template<typename T, typename Allocator = std::allocator<T>>
+class VarArray :
+#ifndef NDEBUG
+	public ContainerDebugBase,
 #endif
-{
-	using Allocator	  = typename std::allocator_traits<AllocatorType>::template rebind_alloc<T>;
+	private Allocator {
 	using AllocTraits = std::allocator_traits<Allocator>;
 
 public:
 	using value_type	  = T;
-	using allocator_type  = AllocatorType;
+	using allocator_type  = Allocator;
 	using pointer		  = typename AllocTraits::pointer;
 	using const_pointer	  = typename AllocTraits::const_pointer;
 	using reference		  = T&;
@@ -35,115 +35,46 @@ public:
 	using reverse_iterator		 = std::reverse_iterator<iterator>;
 	using const_reverse_iterator = std::reverse_iterator<const_iterator>;
 
-	constexpr VarArray() noexcept(std::is_nothrow_default_constructible_v<Allocator>) = default;
+	// Creates an empty array.
+	constexpr VarArray() noexcept(std::is_nothrow_default_constructible_v<Allocator>) :
+		Allocator(),
+		ptr(nullptr),
+		count(0) {
+	}
 
+	// Creates an empty array with the given allocator.
 	constexpr explicit VarArray(const Allocator& allocator) noexcept :
-		alloc {allocator} {
+		Allocator(allocator),
+		ptr(nullptr),
+		count(0) {
 	}
 
 	constexpr explicit VarArray(size_type count, const Allocator& allocator = Allocator()) :
-		alloc {allocator},
+		Allocator(allocator),
+		ptr(AllocTraits::allocate(get_alloc(), count)),
 		count(count) {
-		const pointer storage = AllocTraits::allocate(alloc, count);
-
-		// TODO: allocator construct method check
-		if constexpr (is_memset_value_constructible<T>)
-			std::memset(std::to_address(storage), 0, sizeof(T) * count);
-		else {
-			T*		 dst = std::to_address(storage);
-			T* const end = dst + count;
-			try {
-				for (; dst != end; ++dst)
-					AllocTraits::construct(alloc, dst);
-			} catch (...) {
-				T* const begin = end - count;
-				while (dst != begin) {
-					--dst;
-					AllocTraits::destroy(alloc, dst);
-				}
-				AllocTraits::deallocate(alloc, storage, count);
-				throw;
-			}
-		}
-		alloc.storage = storage;
+		allocator_value_initialize_n(get_alloc(), ptr, count, std::to_address(ptr), static_cast<size_t>(count));
 	}
 
 	template<typename U>
 	constexpr VarArray(size_type count, const U& value, const Allocator& allocator = Allocator()) :
-		alloc {allocator},
+		Allocator(allocator),
+		ptr(AllocTraits::allocate(get_alloc(), count)),
 		count(count) {
-		const pointer storage = AllocTraits::allocate(alloc, count);
-
-		if constexpr (std::is_trivially_constructible_v<T, U> && sizeof(T) == 1 && sizeof(U) == 1) {
-			int byte;
-			std::memcpy(&byte, &value, 1);
-			std::memset(std::to_address(storage), byte, sizeof(T) * count);
-		} else {
-			T*		 dst = std::to_address(storage);
-			T* const end = dst + count;
-			try {
-				for (; dst != end; ++dst)
-					AllocTraits::construct(alloc, dst, value);
-			} catch (...) {
-				T* const begin = end - count;
-				while (dst != begin) {
-					--dst;
-					AllocTraits::destroy(alloc, dst);
-				}
-				AllocTraits::deallocate(alloc, storage, count);
-				throw;
-			}
-		}
-		alloc.storage = storage;
+		allocator_fill_initialize_n(get_alloc(), ptr, count, std::to_address(ptr), value, static_cast<size_t>(count));
 	}
 
 	constexpr VarArray(size_type count, std::initializer_list<T> initializers, const Allocator& allocator = Allocator()) :
-		alloc {allocator},
+		Allocator(allocator),
+		ptr(AllocTraits::allocate(get_alloc(), count)),
 		count(count) {
-		const pointer storage		 = AllocTraits::allocate(alloc, count);
-		const size_t  init_list_size = initializers.size();
-		const size_t  init_count	 = init_list_size < count ? init_list_size : count;
+		const size_t init_count = std::min(initializers.size(), static_cast<size_t>(count));
+		Allocator&	 alloc		= get_alloc();
 
-		T* dst = std::to_address(storage);
-		if constexpr (std::is_trivially_copyable_v<T>) {
-			std::memcpy(dst, initializers.begin(), sizeof(T) * init_count);
-			dst += init_count;
-		} else {
-			const T* src = initializers.begin();
-			T* const end = dst + init_count;
-			try {
-				for (; dst != end; ++dst, ++src)
-					AllocTraits::construct(alloc, dst, *src);
-			} catch (...) {
-				T* const begin = end - init_count;
-				while (dst != begin) {
-					--dst;
-					AllocTraits::destroy(alloc, dst);
-				}
-				AllocTraits::deallocate(alloc, storage, count);
-				throw;
-			}
-		}
+		T* dst = allocator_copy_initialize_n<T>(alloc, ptr, initializers.begin(), count, init_count);
 
-		const size_t rest = count - init_count;
-		if constexpr (is_memset_value_constructible<T>)
-			std::memset(dst, 0, sizeof(T) * rest);
-		else {
-			T* const end = dst + rest;
-			try {
-				for (; dst != end; ++dst)
-					AllocTraits::construct(alloc, dst);
-			} catch (...) {
-				T* const begin = end - count;
-				while (dst != begin) {
-					--dst;
-					AllocTraits::destroy(alloc, dst);
-				}
-				AllocTraits::deallocate(alloc, storage, count);
-				throw;
-			}
-		}
-		alloc.storage = storage;
+		const size_t rest = static_cast<size_t>(count) - init_count;
+		allocator_value_initialize_n(alloc, ptr, count, dst, rest);
 	}
 
 	template<typename U>
@@ -151,199 +82,198 @@ public:
 					   std::initializer_list<T> initializers,
 					   const U&					fallback,
 					   const Allocator&			allocator = Allocator()) :
-		alloc {allocator},
+		Allocator(allocator),
+		ptr(AllocTraits::allocate(get_alloc(), count)),
 		count(count) {
-		const pointer storage		 = AllocTraits::allocate(alloc, count);
-		const size_t  init_list_size = initializers.size();
-		const size_t  init_count	 = init_list_size < count ? init_list_size : count;
+		const size_t init_count = std::min(initializers.size(), static_cast<size_t>(count));
+		Allocator&	 alloc		= get_alloc();
 
-		T* dst = std::to_address(storage);
-		if constexpr (std::is_trivially_copyable_v<T>) {
-			std::memcpy(dst, initializers.begin(), sizeof(T) * init_count);
-			dst += init_count;
-		} else {
-			const T* src = initializers.begin();
-			T* const end = dst + init_count;
-			try {
-				for (; dst != end; ++dst, ++src)
-					AllocTraits::construct(alloc, dst, *src);
-			} catch (...) {
-				T* const begin = end - init_count;
-				while (dst != begin) {
-					--dst;
-					AllocTraits::destroy(alloc, dst);
-				}
-				AllocTraits::deallocate(alloc, storage, count);
-				throw;
-			}
-		}
+		T* dst = allocator_copy_initialize_n<T>(alloc, ptr, initializers.begin(), count, init_count);
 
-		const size_t rest = count - init_count;
-		if constexpr (std::is_trivially_constructible_v<T, U> && sizeof(T) == 1 && sizeof(U) == 1) {
-			int byte;
-			std::memcpy(&byte, &fallback, 1);
-			std::memset(dst, byte, sizeof(T) * rest);
-		} else {
-			T* const end = dst + rest;
-			try {
-				for (; dst != end; ++dst)
-					AllocTraits::construct(alloc, dst, fallback);
-			} catch (...) {
-				T* const begin = end - count;
-				while (dst != begin) {
-					--dst;
-					AllocTraits::destroy(alloc, dst);
-				}
-				AllocTraits::deallocate(alloc, storage, count);
-				throw;
-			}
-		}
-		alloc.storage = storage;
+		const size_t rest = static_cast<size_t>(count) - init_count;
+		allocator_fill_initialize_n(alloc, ptr, count, dst, fallback, rest);
+	}
+
+	constexpr VarArray(std::initializer_list<T> initializers, const Allocator& allocator = Allocator()) :
+		Allocator(allocator),
+		ptr(AllocTraits::allocate(get_alloc(), initializers.size())),
+		count(initializers.size()) {
+		allocator_copy_initialize_n<T>(get_alloc(), ptr, initializers.begin(), count, static_cast<size_t>(count));
 	}
 
 	constexpr VarArray(const VarArray& other) :
-		alloc {AllocTraits::select_on_container_copy_construction(other.alloc)},
+#ifndef NDEBUG
+		ContainerDebugBase(other),
+#endif
+		Allocator(AllocTraits::select_on_container_copy_construction(other.get_alloc())),
+		ptr(AllocTraits::allocate(get_alloc(), other.count)),
 		count(other.count) {
-		const pointer storage = AllocTraits::allocate(alloc, count);
-
-		T*		 dst = std::to_address(storage);
-		const T* src = std::to_address(other.alloc.storage);
-		if constexpr (std::is_trivially_copyable_v<T>) {
-			std::memcpy(dst, src, sizeof(T) * count);
-		} else {
-			T* const end = dst + count;
-			try {
-				for (; dst != end; ++dst, ++src)
-					AllocTraits::construct(alloc, dst, *src);
-			} catch (...) {
-				T* const begin = end - count;
-				while (dst != begin) {
-					--dst;
-					AllocTraits::destroy(alloc, dst);
-				}
-				AllocTraits::deallocate(alloc, storage, count);
-				throw;
-			}
-		}
-		alloc.storage = storage;
+		allocator_copy_initialize_n<T>(get_alloc(), ptr, other.ptr, count, static_cast<size_t>(count));
 	}
 
 	constexpr VarArray(VarArray&& other) noexcept :
-		alloc {std::move(other.alloc)},
+#ifndef NDEBUG
+		ContainerDebugBase(std::move(other)),
+#endif
+		Allocator(std::move(other.get_alloc())),
+		ptr(other.ptr),
 		count(other.count) {
-		alloc.storage		= other.alloc.storage;
-		other.alloc.storage = nullptr;
+		other.ptr	= nullptr;
+		other.count = 0;
 	}
 
 	constexpr ~VarArray() {
 		delete_data();
 	}
 
-	constexpr VarArray& operator=(VarArray that) noexcept {
-		swap(that);
+	constexpr VarArray& operator=(const VarArray& other) {
+		if (this == &other)
+			return *this;
+
+#ifndef NDEBUG
+		ContainerDebugBase::operator=(other);
+#endif
+
+		if constexpr (AllocTraits::propagate_on_container_copy_assignment::value) {
+			get_alloc() = other.get_alloc();
+		}
+
+		if (count == other.count) {
+			T*			 dst = std::to_address(ptr);
+			const T*	 src = std::to_address(other.ptr);
+			const size_t n	 = static_cast<size_t>(count);
+			if constexpr (std::is_trivially_copy_assignable_v<T>) {
+				std::memcpy(dst, src, sizeof(T) * n);
+			} else {
+				T* const end = dst + n;
+				for (; dst != end; ++dst, ++src)
+					*dst = *src;
+			}
+		} else {
+			delete_data();
+
+			Allocator& alloc = get_alloc();
+
+			ptr	  = AllocTraits::allocate(alloc, other.count);
+			count = other.count;
+			allocator_copy_initialize_n<T>(alloc, ptr, other.ptr, count, static_cast<size_t>(count));
+		}
 		return *this;
 	}
 
-	template<typename C>
-	constexpr bool operator==(const C& that) const noexcept {
-		return size() == std::size(that) && std::equal(begin(), end(), std::begin(that));
+	constexpr VarArray& operator=(VarArray&& other) noexcept {
+#ifndef NDEBUG
+		ContainerDebugBase::operator=(std::move(other));
+#endif
+
+		if constexpr (AllocTraits::propagate_on_container_move_assignment::value) {
+			get_alloc() = std::move(other.get_alloc());
+		}
+
+		delete_data();
+		ptr	  = other.ptr;
+		count = other.count;
+
+		other.ptr	= nullptr;
+		other.count = 0;
+		return *this;
 	}
 
-	template<typename C>
-	constexpr bool operator!=(const C& that) const noexcept {
-		return !(*this == that);
+	constexpr bool operator==(const VarArray& other) const noexcept {
+		return count == other.count && std::equal(ptr, ptr + count, other.ptr);
 	}
 
-	template<typename C>
-	constexpr bool operator<(const C& that) const noexcept {
-		return std::lexicographical_compare(begin(), end(), std::begin(that), std::end(that));
+	constexpr bool operator!=(const VarArray& other) const noexcept {
+		return !(*this == other);
 	}
 
-	template<typename C>
-	constexpr bool operator>(const C& that) const noexcept {
-		return that < *this;
+	constexpr bool operator<(const VarArray& other) const noexcept {
+		return std::lexicographical_compare(ptr, ptr + count, other.ptr, other.ptr + other.count);
 	}
 
-	template<typename C>
-	constexpr bool operator<=(const C& that) const noexcept {
-		return !(*this > that);
+	constexpr bool operator>(const VarArray& other) const noexcept {
+		return other < *this;
 	}
 
-	template<typename C>
-	constexpr bool operator>=(const C& that) const noexcept {
-		return !(*this < that);
+	constexpr bool operator<=(const VarArray& other) const noexcept {
+		return !(*this > other);
+	}
+
+	constexpr bool operator>=(const VarArray& other) const noexcept {
+		return !(*this < other);
 	}
 
 #ifdef __cpp_lib_three_way_comparison
-	constexpr auto operator<=>(const auto& that) const noexcept {
-		return std::lexicographical_compare_three_way(begin(), end(), std::begin(that), std::end(that));
+	constexpr auto operator<=>(const VarArray& other) const noexcept {
+		return std::lexicographical_compare_three_way(ptr, ptr + count, other.ptr, other.ptr + other.count);
 	}
 #endif
 
 	constexpr T& operator[](size_type index) noexcept {
 		HH_ASSERT(index < count, "index out of range");
-		return alloc.storage[index];
+		return ptr[index];
 	}
 
 	constexpr const T& operator[](size_type index) const noexcept {
 		HH_ASSERT(index < count, "index out of range");
-		return alloc.storage[index];
+		return ptr[index];
 	}
 
 	constexpr T& at(size_type index) {
 		if (index < count)
-			return alloc.storage[index];
+			return ptr[index];
 
 		throw std::out_of_range("index out of range");
 	}
 
 	constexpr const T& at(size_type index) const {
 		if (index < count)
-			return alloc.storage[index];
+			return ptr[index];
 
 		throw std::out_of_range("index out of range");
 	}
 
 	constexpr pointer get(size_type index) noexcept {
 		if (index < count)
-			return alloc.storage + index;
+			return ptr + index;
 
 		return nullptr;
 	}
 
 	constexpr const_pointer get(size_type index) const noexcept {
 		if (index < count)
-			return alloc.storage + index;
+			return ptr + index;
 
 		return nullptr;
 	}
 
 	constexpr T& front() noexcept {
 		HH_ASSERT(count != 0, "can't access front of empty array");
-		return alloc.storage[0];
+		return ptr[0];
 	}
 
 	constexpr const T& front() const noexcept {
 		HH_ASSERT(count != 0, "can't access front of empty array");
-		return alloc.storage[0];
+		return ptr[0];
 	}
 
 	constexpr T& back() noexcept {
 		HH_ASSERT(count != 0, "can't access back of empty array");
-		return alloc.storage[count - 1];
+		return ptr[count - 1];
 	}
 
 	constexpr const T& back() const noexcept {
 		HH_ASSERT(count != 0, "can't access back of empty array");
-		return alloc.storage[count - 1];
+		return ptr[count - 1];
 	}
 
 	constexpr size_type size() const noexcept {
 		return count;
 	}
 
-	static constexpr size_type max_size() noexcept {
-		return std::numeric_limits<size_type>::max();
+	constexpr size_type max_size() const noexcept {
+		return std::min(AllocTraits::max_size(get_alloc()),
+						static_cast<size_type>(std::numeric_limits<difference_type>::max()));
 	}
 
 	[[nodiscard]] constexpr bool empty() const noexcept {
@@ -351,15 +281,15 @@ public:
 	}
 
 	constexpr pointer data() noexcept {
-		return alloc.storage;
+		return ptr;
 	}
 
 	constexpr const_pointer data() const noexcept {
-		return alloc.storage;
+		return ptr;
 	}
 
 	constexpr allocator_type get_allocator() const noexcept {
-		return static_cast<allocator_type>(alloc);
+		return static_cast<allocator_type>(get_alloc());
 	}
 
 	template<typename U>
@@ -369,13 +299,17 @@ public:
 
 	constexpr void reset() noexcept {
 		delete_data();
-		alloc.storage = nullptr;
-		count		  = 0;
+		ptr	  = nullptr;
+		count = 0;
 	}
 
-	constexpr void swap(VarArray& that) noexcept {
-		std::swap(alloc, that.alloc);
-		std::swap(count, that.count);
+	constexpr void swap(VarArray& other) noexcept {
+		if constexpr (AllocTraits::propagate_on_container_swap::value) {
+			std::swap(get_alloc(), other.get_alloc());
+		}
+
+		std::swap(ptr, other.ptr);
+		std::swap(count, other.count);
 	}
 
 	friend constexpr void swap(VarArray& left, VarArray& right) noexcept {
@@ -383,34 +317,34 @@ public:
 	}
 
 	constexpr iterator begin() noexcept {
-#ifdef HH_DEBUG
-		return {alloc.storage, *this};
+#ifndef NDEBUG
+		return {ptr, this};
 #else
-		return {alloc.storage};
+		return {ptr};
 #endif
 	}
 
 	constexpr const_iterator begin() const noexcept {
-#ifdef HH_DEBUG
-		return {alloc.storage, *this};
+#ifndef NDEBUG
+		return {ptr, this};
 #else
-		return {alloc.storage};
+		return {ptr};
 #endif
 	}
 
 	constexpr iterator end() noexcept {
-#ifdef HH_DEBUG
-		return {alloc.storage + count, *this};
+#ifndef NDEBUG
+		return {ptr + count, this};
 #else
-		return {alloc.storage + count};
+		return {ptr + count};
 #endif
 	}
 
 	constexpr const_iterator end() const noexcept {
-#ifdef HH_DEBUG
-		return {alloc.storage + count, *this};
+#ifndef NDEBUG
+		return {ptr + count, this};
 #else
-		return {alloc.storage + count};
+		return {ptr + count};
 #endif
 	}
 
@@ -447,21 +381,27 @@ public:
 	}
 
 private:
-	struct : Allocator {
-		VarArray::pointer storage = {};
-	} alloc;
+	pointer	  ptr;
+	size_type count;
 
-	size_type count = {};
+	constexpr Allocator& get_alloc() noexcept {
+		return static_cast<Allocator&>(*this);
+	}
+
+	constexpr const Allocator& get_alloc() const noexcept {
+		return static_cast<const Allocator&>(*this);
+	}
 
 	constexpr void delete_data() noexcept {
 		if constexpr (!std::is_trivially_destructible_v<T>) {
-			T* it  = std::to_address(alloc.storage);
-			T* end = it + count;
-			for (; it != end; ++it)
-				AllocTraits::destroy(alloc, it);
+			T* const begin = std::to_address(ptr);
+			T*		 it	   = begin + count;
+			while (it != begin) {
+				--it;
+				AllocTraits::destroy(get_alloc(), it);
+			}
 		}
-
-		AllocTraits::deallocate(alloc, alloc.storage, count);
+		AllocTraits::deallocate(get_alloc(), ptr, count);
 	}
 };
 

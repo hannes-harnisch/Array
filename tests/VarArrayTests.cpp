@@ -1,4 +1,3 @@
-#define HH_DEBUG
 #include "../include/VarArray.hpp"
 
 #include <doctest/doctest.h>
