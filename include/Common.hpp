@@ -112,7 +112,7 @@ void allocator_fill_initialize_n(Allocator& allocator, Pointer ptr, SizeType all
 	using AllocTraits = std::allocator_traits<Allocator>;
 
 	if constexpr (std::is_trivially_constructible_v<T, U> && sizeof(T) == 1 && sizeof(U) == 1) {
-		int byte;
+		unsigned char byte;
 		std::memcpy(&byte, &value, 1);
 		std::memset(std::to_address(ptr), byte, sizeof(T) * n);
 	} else {
