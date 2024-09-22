@@ -1,5 +1,4 @@
-#include "../include/VarArray.hpp"
-
+#include <VarArray.hpp>
 #include <doctest/doctest.h>
 
 #include <random>
@@ -10,8 +9,9 @@ using namespace hh;
 TEST_CASE("DefaultConstructor") {
 	VarArray<int> a;
 
-	for ([[maybe_unused]] int element : a)
+	for ([[maybe_unused]] int element : a) {
 		CHECK(false); // Check that there are no elements.
+	}
 
 	CHECK(a.data() == nullptr);
 }
@@ -19,8 +19,9 @@ TEST_CASE("DefaultConstructor") {
 TEST_CASE("ConstructorWithCountZero") {
 	VarArray<int> a(0);
 
-	for ([[maybe_unused]] int element : a)
+	for ([[maybe_unused]] int element : a) {
 		CHECK(false); // Check that there are no elements.
+	}
 
 	CHECK(a.data() == nullptr);
 	CHECK(a.size() == 0);
@@ -28,12 +29,14 @@ TEST_CASE("ConstructorWithCountZero") {
 
 TEST_CASE("ConstructorWithInitialValue") {
 	VarArray<std::string> a(30, std::string(5, 'y'));
-	for (auto& str : a)
+	for (auto& str : a) {
 		CHECK(str == "yyyyy");
+	}
 
-	VarArray<std::string> b(30, std::string("DONTMOVEINALOOP"));
-	for (auto& str : b)
-		CHECK(str == "DONTMOVEINALOOP");
+	VarArray<std::string> b(30, std::string("DON'T MOVE IN A LOOP"));
+	for (auto& str : b) {
+		CHECK(str == "DON'T MOVE IN A LOOP");
+	}
 }
 
 TEST_CASE("ConstructorWithInitializerList") {
@@ -42,8 +45,9 @@ TEST_CASE("ConstructorWithInitializerList") {
 	VarArray<unsigned char> a(25, initializer_list);
 
 	auto element = a.begin();
-	for (auto value : initializer_list)
+	for (auto value : initializer_list) {
 		CHECK(*element++ == value);
+	}
 }
 
 TEST_CASE("ConstructorWithInitializerListAndDefaultValue") {
@@ -53,36 +57,40 @@ TEST_CASE("ConstructorWithInitializerListAndDefaultValue") {
 	VarArray<uint16_t> a(25, initializer_list, default_value);
 
 	auto element = a.begin();
-	for (uint16_t value : initializer_list)
+	for (uint16_t value : initializer_list) {
 		CHECK(*element++ == value);
+	}
 
-	for (size_t i = initializer_list.size(); i < a.size(); ++i)
+	for (size_t i = initializer_list.size(); i < a.size(); ++i) {
 		CHECK(a[i] == default_value);
+	}
 }
 
 TEST_CASE("CopyConstructor") {
 	VarArray<float> a(20, 6.66f);
-	auto			b(a);
+	auto b(a);
 	CHECK(a.size() == b.size());
 
 	auto element_a = a.begin();
-	for (float element_b : b)
+	for (float element_b : b) {
 		CHECK(element_b == *element_a++);
+	}
 }
 
 TEST_CASE("MoveConstructor") {
-	constexpr size_t test_size	   = 50;
+	constexpr size_t test_size = 50;
 	constexpr double initial_value = 1.25;
 
 	VarArray<double> a(test_size, initial_value);
 
 	auto data = a.data();
-	auto b	  = std::move(a);
+	auto b = std::move(a);
 
 	CHECK(b.size() == test_size);
 	CHECK(b.data() == data);
-	for (double element : b)
+	for (double element : b) {
 		CHECK(element == initial_value);
+	}
 }
 
 TEST_CASE("CopyAssignment") {
@@ -92,13 +100,14 @@ TEST_CASE("CopyAssignment") {
 
 	CHECK(a.size() == b.size());
 	auto element_b = b.begin();
-	for (short element_a : a)
+	for (short element_a : a) {
 		CHECK(element_a == *element_b++);
+	}
 }
 
 TEST_CASE("MoveAssignment") {
-	constexpr size_t size_a			 = 58;
-	constexpr char	 initial_value_a = 'x';
+	constexpr size_t size_a = 58;
+	constexpr char initial_value_a = 'x';
 
 	VarArray<char> a(size_a, initial_value_a);
 	VarArray<char> b(10);
@@ -109,14 +118,15 @@ TEST_CASE("MoveAssignment") {
 
 	CHECK(b.size() == size_a);
 	CHECK(b.data() == data_ptr_a);
-	for (char element : b)
+	for (char element : b) {
 		CHECK(element == initial_value_a);
+	}
 }
 
 TEST_CASE("Subscript") {
-	constexpr size_t   index_a = 1234;
-	constexpr size_t   index_b = 5678;
-	constexpr size_t   index_c = 9000;
+	constexpr size_t index_a = 1234;
+	constexpr size_t index_b = 5678;
+	constexpr size_t index_c = 9000;
 	constexpr unsigned value_a = 123;
 	constexpr unsigned value_b = 456;
 	constexpr unsigned value_c = 789;
@@ -132,14 +142,14 @@ TEST_CASE("Subscript") {
 }
 
 TEST_CASE("Equality") {
-	constexpr size_t	index_a = 33;
-	constexpr size_t	index_b = 333;
-	constexpr size_t	index_c = 3333;
+	constexpr size_t index_a = 33;
+	constexpr size_t index_b = 333;
+	constexpr size_t index_c = 3333;
 	constexpr long long value_a = 123933458;
 	constexpr long long value_b = 1233457654;
 	constexpr long long value_c = 12236353338;
 
-	constexpr size_t	size = 5000;
+	constexpr size_t size = 5000;
 	VarArray<long long> a(size, 0);
 	VarArray<long long> b(size, 0);
 	a[index_a] = b[index_a] = value_a;
@@ -260,8 +270,9 @@ TEST_CASE("Reset") {
 TEST_CASE("Fill") {
 	constexpr int fill_value = 244;
 	VarArray<int> a(10, fill_value);
-	for (int element : a)
+	for (int element : a) {
 		CHECK(element == fill_value);
+	}
 }
 
 TEST_CASE("Swap") {
@@ -287,7 +298,7 @@ TEST_CASE("BeginAndEnd") {
 
 	VarArray<short> a(size);
 	a.front() = 23;
-	a.back()  = 47;
+	a.back() = 47;
 
 	CHECK(*a.begin() == 23);
 	CHECK(a.end()[-1] == 47);
@@ -339,8 +350,8 @@ TEST_CASE("IteratorEquality") {
 
 	auto begin1 = a.begin();
 	auto begin2 = a.cbegin();
-	auto end1	= a.end();
-	auto end2	= a.cend();
+	auto end1 = a.end();
+	auto end2 = a.cend();
 	CHECK(begin1 == begin2);
 	CHECK(end1 == end2);
 }
@@ -387,8 +398,8 @@ TEST_CASE("IteratorGreaterThanOrEqual") {
 TEST_CASE("IteratorSpaceship") {
 #ifdef __cpp_lib_three_way_comparison
 	VarArray<long> a(30);
-	const auto	   second_element = a.begin() + 1;
-	auto		   gets_mutated	  = a.begin() + 2;
+	const auto second_element = a.begin() + 1;
+	auto gets_mutated = a.begin() + 2;
 	CHECK((gets_mutated <=> second_element) == std::strong_ordering::greater);
 	CHECK((--gets_mutated <=> second_element) == std::strong_ordering::equal);
 	CHECK((--gets_mutated <=> second_element) == std::strong_ordering::less);
@@ -406,7 +417,7 @@ TEST_CASE("IteratorPostIncrement") {
 	VarArray<long> a(3, {5, 6, 7});
 
 	auto incremented = a.begin();
-	auto first		 = incremented++;
+	auto first = incremented++;
 	CHECK(*first == 5);
 	CHECK(*incremented == 6);
 }
@@ -454,7 +465,7 @@ TEST_CASE("IteratorSubtractionAssignment") {
 TEST_CASE("IteratorSubtraction") {
 	VarArray<int> a(3, {10, 11, 12});
 
-	auto last	= a.end() - 1;
+	auto last = a.end() - 1;
 	auto offset = last - a.begin();
 	CHECK(*last == 12);
 	CHECK(size_t(offset) == a.size() - 1);

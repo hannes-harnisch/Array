@@ -55,7 +55,7 @@ protected:
 
 	constexpr ContainerDebugBase& operator=(ContainerDebugBase&& other) noexcept {
 		invalidate_iterators();
-		head	   = other.head;
+		head = other.head;
 		other.head = nullptr;
 		update_iterators();
 		return *this;
@@ -63,9 +63,9 @@ protected:
 
 	constexpr void invalidate_iterators() const noexcept {
 	#ifdef __cpp_lib_is_constant_evaluated
-		if (std::is_constant_evaluated())
+		if (std::is_constant_evaluated()) {
 			invalidate_iterators_no_lock();
-		else
+		} else
 	#endif
 		{
 			debug_iterator_lock.lock();
@@ -76,9 +76,9 @@ protected:
 
 	constexpr void update_iterators() const noexcept {
 	#ifdef __cpp_lib_is_constant_evaluated
-		if (std::is_constant_evaluated())
+		if (std::is_constant_evaluated()) {
 			update_iterators_no_lock();
-		else
+		} else
 	#endif
 		{
 			debug_iterator_lock.lock();
@@ -102,9 +102,9 @@ protected:
 
 	using RangeGetter = Range (*)(const ContainerDebugBase&) noexcept;
 
-	const ContainerDebugBase* parent	   = nullptr;
-	RangeGetter				  range_getter = nullptr;
-	IteratorDebugBase*		  next		   = nullptr;
+	const ContainerDebugBase* parent = nullptr;
+	RangeGetter range_getter = nullptr;
+	IteratorDebugBase* next = nullptr;
 
 	constexpr IteratorDebugBase() noexcept = default;
 
@@ -129,11 +129,11 @@ protected:
 		if (parent != other.parent) {
 			orphan_this();
 			if (other.parent == nullptr) {
-				parent		 = nullptr;
+				parent = nullptr;
 				range_getter = nullptr;
-				next		 = nullptr;
+				next = nullptr;
 			} else {
-				parent		 = other.parent;
+				parent = other.parent;
 				range_getter = other.range_getter;
 				adopt_current_parent();
 			}
@@ -167,9 +167,9 @@ private:
 
 	constexpr void adopt_current_parent() noexcept {
 	#ifdef __cpp_lib_is_constant_evaluated
-		if (std::is_constant_evaluated())
+		if (std::is_constant_evaluated()) {
 			adopt_current_parent_no_lock();
-		else
+		} else
 	#endif
 		{
 			ContainerDebugBase::debug_iterator_lock.lock();
@@ -179,15 +179,15 @@ private:
 	}
 
 	constexpr void adopt_current_parent_no_lock() noexcept {
-		next		 = parent->head;
+		next = parent->head;
 		parent->head = this;
 	}
 
 	constexpr void orphan_this() noexcept {
 	#ifdef __cpp_lib_is_constant_evaluated
-		if (std::is_constant_evaluated())
+		if (std::is_constant_evaluated()) {
 			orphan_this_no_lock();
-		else
+		} else
 	#endif
 		{
 			ContainerDebugBase::debug_iterator_lock.lock();
@@ -197,25 +197,29 @@ private:
 	}
 
 	constexpr void orphan_this_no_lock() noexcept {
-		if (parent == nullptr)
+		if (parent == nullptr) {
 			return;
+		}
 
 		IteratorDebugBase** it = &parent->head;
-		while (*it != this)
+		while (*it != this) {
 			it = &(*it)->next;
+		}
 
 		*it = next;
 	}
 };
 
 constexpr void ContainerDebugBase::invalidate_iterators_no_lock() const noexcept {
-	for (auto it = head; it != nullptr; it = it->next)
+	for (auto it = head; it != nullptr; it = it->next) {
 		it->parent = nullptr;
+	}
 }
 
 constexpr void ContainerDebugBase::update_iterators_no_lock() const noexcept {
-	for (auto it = head; it != nullptr; it = it->next)
+	for (auto it = head; it != nullptr; it = it->next) {
 		it->parent = this;
+	}
 }
 #endif
 
@@ -232,10 +236,10 @@ public:
 	using iterator_concept = std::contiguous_iterator_tag;
 #endif
 	using iterator_category = std::random_access_iterator_tag;
-	using value_type		= T;
-	using difference_type	= Diff;
-	using pointer			= ConstPtr;
-	using reference			= const T&;
+	using value_type = T;
+	using difference_type = Diff;
+	using pointer = ConstPtr;
+	using reference = const T&;
 
 	constexpr ContiguousConstIterator() noexcept :
 		ptr() {
@@ -427,11 +431,13 @@ private:
 	constexpr void assert_offset(difference_type offset) const noexcept {
 		HH_ASSERT(offset == 0 || ptr, "can't offset value-initialized iterator");
 
-		if (offset < 0)
+		if (offset < 0) {
 			HH_ASSERT(offset >= get_begin<T>() - ptr, "can't offset iterator before begin");
+		}
 
-		if (offset > 0)
+		if (offset > 0) {
 			HH_ASSERT(offset <= get_end<T>() - ptr, "can't offset iterator after end");
+		}
 	}
 
 	constexpr void assert_compatible(const ContiguousConstIterator& other) const noexcept {
@@ -461,10 +467,10 @@ public:
 	using iterator_concept = std::contiguous_iterator_tag;
 #endif
 	using iterator_category = std::random_access_iterator_tag;
-	using value_type		= T;
-	using difference_type	= Diff;
-	using pointer			= Ptr;
-	using reference			= T&;
+	using value_type = T;
+	using difference_type = Diff;
+	using pointer = Ptr;
+	using reference = T&;
 
 	using Base::Base;
 
@@ -485,7 +491,7 @@ public:
 	}
 
 	constexpr ContiguousIterator operator++(int) noexcept {
-		auto  old = *this;
+		auto old = *this;
 		Base::operator++();
 		return old;
 	}
@@ -496,7 +502,7 @@ public:
 	}
 
 	constexpr ContiguousIterator operator--(int) noexcept {
-		auto  old = *this;
+		auto old = *this;
 		Base::operator--();
 		return old;
 	}
@@ -541,8 +547,8 @@ public:
 
 template<typename T, typename Diff, typename Ptr, typename ConstPtr>
 struct std::pointer_traits<hh::ContiguousConstIterator<T, Diff, Ptr, ConstPtr>> {
-	using pointer		  = hh::ContiguousConstIterator<T, Diff, Ptr, ConstPtr>;
-	using element_type	  = const T;
+	using pointer = hh::ContiguousConstIterator<T, Diff, Ptr, ConstPtr>;
+	using element_type = const T;
 	using difference_type = Diff;
 
 	[[nodiscard]] static constexpr const T* to_address(pointer it) noexcept {
@@ -554,8 +560,8 @@ struct std::pointer_traits<hh::ContiguousConstIterator<T, Diff, Ptr, ConstPtr>> 
 
 template<typename T, typename Diff, typename Ptr, typename ConstPtr>
 struct std::pointer_traits<hh::ContiguousIterator<T, Diff, Ptr, ConstPtr>> {
-	using pointer		  = hh::ContiguousIterator<T, Diff, Ptr, ConstPtr>;
-	using element_type	  = T;
+	using pointer = hh::ContiguousIterator<T, Diff, Ptr, ConstPtr>;
+	using element_type = T;
 	using difference_type = Diff;
 
 	[[nodiscard]] static constexpr T* to_address(pointer it) noexcept {

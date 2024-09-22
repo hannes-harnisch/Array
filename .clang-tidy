@@ -1,0 +1,10 @@
+Checks: >
+  -bugprone-switch-missing-default-case,
+  -bugprone-unhandled-self-assignment,
+  -google-explicit-constructor,
+  -hicpp-exception-baseclass,
+  -misc-no-recursion,
+  -misc-throw-by-value-catch-by-reference,
+  -modernize-return-braced-init-list,
+  -modernize-use-auto,
+  -modernize-use-nodiscard

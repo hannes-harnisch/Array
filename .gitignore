@@ -1,6 +1,8 @@
 .bin/
 .bin_int/
+.idea/
 .vs/
+cmake-build*
 
 *.filters
 *.sln

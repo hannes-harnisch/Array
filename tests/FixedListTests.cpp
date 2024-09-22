@@ -1,8 +1,5 @@
-#include "../include/FixedList.hpp"
-
+#include <FixedList.hpp>
 #include <doctest/doctest.h>
-
-using namespace hh;
 
 #include <array>
 #include <iostream>
@@ -12,6 +9,7 @@ using namespace hh;
 #include <vector>
 
 using namespace std;
+using namespace hh;
 
 TEST_CASE("ctor()") {
 	FixedList<string, 5> l;
@@ -28,8 +26,9 @@ TEST_CASE("ctor(count)") {
 	FixedList<A, 15> l(11);
 	REQUIRE(l.size() == 11);
 
-	for (auto& a : l)
+	for (auto& a : l) {
 		REQUIRE(a.s == "ABC");
+	}
 }
 
 TEST_CASE("ctor(count,value)") {
@@ -45,8 +44,9 @@ TEST_CASE("ctor(count,value)") {
 	FixedList<string, 15> l(11, atla);
 	REQUIRE(l.size() == 11);
 
-	for (auto& s : l)
+	for (auto& s : l) {
 		REQUIRE(s == atla);
+	}
 }
 
 TEST_CASE("ctor(first,last) forward") {
@@ -72,7 +72,7 @@ TEST_CASE("ctor(first,last) input") {
 	};
 
 	struct X : I {
-		~X() {
+		~X() override {
 			--counter;
 		}
 
@@ -88,13 +88,14 @@ TEST_CASE("ctor(first,last) input") {
 	v2.emplace_back(make_unique<X>());
 
 	auto move_begin = make_move_iterator(v2.begin());
-	auto move_end	= make_move_iterator(v2.end());
+	auto move_end = make_move_iterator(v2.end());
 	{
 		FixedList<unique_ptr<I>, 6> l2(move_begin, move_end);
 		REQUIRE(l2.size() == 4);
 
-		for (auto& p : l2)
+		for (auto& p : l2) {
 			p->fun();
+		}
 
 		REQUIRE(counter == 4);
 	}
@@ -117,7 +118,7 @@ TEST_CASE("ctor(copy)") {
 	FixedList<string, 15> l2 = l1;
 	REQUIRE(l1.size() == l2.size());
 
-	auto s2		= l2.begin();
+	auto s2 = l2.begin();
 	bool thrown = false;
 	for (auto& s1 : l1) {
 		thrown = true;
@@ -148,7 +149,7 @@ TEST_CASE("ctor(move)") {
 	};
 
 	struct X : I {
-		~X() {
+		~X() override {
 			--counter;
 		}
 
@@ -166,11 +167,12 @@ TEST_CASE("ctor(move)") {
 	REQUIRE(l1.size() == 5);
 
 	{
-		FixedList<unique_ptr<I>, 15> l2 = move(l1);
+		FixedList<unique_ptr<I>, 15> l2 = std::move(l1);
 		REQUIRE(l2.size() == 5);
 
-		for (auto& i : l2)
+		for (auto& i : l2) {
 			i->fun();
+		}
 
 		REQUIRE(counter == 5);
 	}
@@ -179,7 +181,7 @@ TEST_CASE("ctor(move)") {
 }
 
 TEST_CASE("dtor") {
-	FixedList<int, 5>	 l1;
+	FixedList<int, 5> l1;
 	FixedList<string, 5> l2;
 }
 
@@ -208,7 +210,7 @@ TEST_CASE("operator=(move)") {
 	};
 
 	struct X : I {
-		~X() {
+		~X() override {
 			--counter;
 		}
 
@@ -233,10 +235,11 @@ TEST_CASE("operator=(move)") {
 		l2.emplace_back(make_unique<X>());
 		REQUIRE(l2.size() == 3);
 
-		for (auto& i : l2)
+		for (auto& i : l2) {
 			i->fun();
+		}
 
-		l2 = move(l1);
+		l2 = std::move(l1);
 		REQUIRE(counter == 6);
 	}
 
@@ -288,7 +291,7 @@ TEST_CASE("operator>=") {
 }
 
 TEST_CASE("operator<=>") {
-	strong_ordering result;
+	strong_ordering result {};
 
 	FixedList<string, 7> l1 {"A", "B", "C"};
 	FixedList<string, 7> l2 {"A", "B", "C"};
@@ -369,8 +372,9 @@ TEST_CASE("assign(count,value)") {
 	l.assign(7, "...");
 
 	REQUIRE(l.size() == 7);
-	for (auto& s : l)
+	for (auto& s : l) {
 		REQUIRE(s == "...");
+	}
 }
 
 class TestException : public std::exception {};
@@ -382,8 +386,9 @@ TEST_CASE("assign(count,value) throw") {
 		X() = default;
 
 		X(const X&) {
-			if (!counter--)
+			if (!counter--) {
 				throw TestException();
+			}
 		}
 
 		X(X&&) = default;
@@ -413,8 +418,9 @@ TEST_CASE("assign(first,last) forward") {
 	REQUIRE(l.size() == 6);
 
 	auto vb = v.begin() + 1;
-	for (auto& s : l)
+	for (auto& s : l) {
 		REQUIRE(s == *vb++);
+	}
 }
 
 TEST_CASE("assign(first,last) forward throw") {
@@ -424,8 +430,9 @@ TEST_CASE("assign(first,last) forward throw") {
 		X() = default;
 
 		X(const X&) {
-			if (!counter--)
+			if (!counter--) {
 				throw TestException();
+			}
 		}
 
 		X(X&&) = default;
@@ -452,7 +459,7 @@ TEST_CASE("assign(first,last) input") {
 	v.emplace_back(make_unique<string>("D"));
 
 	auto move_begin = make_move_iterator(v.begin() + 1);
-	auto move_end	= make_move_iterator(v.end());
+	auto move_end = make_move_iterator(v.end());
 
 	FixedList<unique_ptr<string>, 7> l;
 	l.emplace_back(make_unique<string>("X"));
@@ -473,9 +480,10 @@ TEST_CASE("assign(first,last) input throw") {
 	struct X {
 		X() = default;
 
-		X(X&&) {
-			if (!counter--)
+		X(X&&) noexcept(false) {
+			if (!counter--) {
 				throw TestException();
+			}
 		}
 	};
 
@@ -486,7 +494,7 @@ TEST_CASE("assign(first,last) input throw") {
 	v.emplace_back();
 
 	auto move_begin = make_move_iterator(v.begin() + 1);
-	auto move_end	= make_move_iterator(v.end());
+	auto move_end = make_move_iterator(v.end());
 
 	FixedList<X, 7> l;
 	l.emplace_back();
@@ -508,8 +516,9 @@ TEST_CASE("assign(init)") {
 	FixedList<string, 10> l(5);
 	REQUIRE(l.size() == 5);
 
-	for (auto& s : l)
+	for (auto& s : l) {
 		REQUIRE(s.empty());
+	}
 
 	l.assign({"A", "B", "C"});
 	REQUIRE(l[0] == "A");
@@ -524,8 +533,9 @@ TEST_CASE("assign(init) throw") {
 		X() = default;
 
 		X(const X&) {
-			if (!counter--)
+			if (!counter--) {
 				throw TestException();
+			}
 		}
 
 		X(X&&) = default;
@@ -566,8 +576,9 @@ TEST_CASE("insert(pos,value) throw") {
 
 		X(const X& x) :
 			s(x.s) {
-			if (!counter--)
+			if (!counter--) {
 				throw TestException();
+			}
 		}
 
 		X(X&&) = default;
@@ -583,9 +594,10 @@ TEST_CASE("insert(pos,value) throw") {
 		thrown = true;
 
 		array arr {"1", "2", "3"};
-		auto  i = l.begin();
-		for (auto str : arr)
+		auto i = l.begin();
+		for (auto str : arr) {
 			REQUIRE(i++->s == str);
+		}
 	}
 	REQUIRE(thrown);
 }
@@ -624,8 +636,9 @@ TEST_CASE("insert(pos,count,value) throw") {
 
 		X(const X& x) :
 			s(x.s) {
-			if (!counter--)
+			if (!counter--) {
 				throw TestException();
+			}
 		}
 
 		X(X&&) = default;
@@ -641,9 +654,10 @@ TEST_CASE("insert(pos,count,value) throw") {
 		thrown = true;
 
 		array arr {"1", "2", "3"};
-		auto  i = l.begin();
-		for (auto str : arr)
+		auto i = l.begin();
+		for (auto str : arr) {
 			REQUIRE(i++->s == str);
+		}
 	}
 	REQUIRE(thrown);
 }
@@ -682,8 +696,9 @@ TEST_CASE("insert(pos,first,last) forward throw") {
 
 		X(const X& x) :
 			s(x.s) {
-			if (!counter--)
+			if (!counter--) {
 				throw TestException();
+			}
 		}
 
 		X(X&&) = default;
@@ -699,9 +714,10 @@ TEST_CASE("insert(pos,first,last) forward throw") {
 		thrown = true;
 
 		array arr {"A", "B", "C"};
-		auto  i = l.begin();
-		for (auto str : arr)
+		auto i = l.begin();
+		for (auto str : arr) {
 			REQUIRE(i++->s == str);
+		}
 	}
 	REQUIRE(thrown);
 }
@@ -723,7 +739,7 @@ TEST_CASE("insert(pos,first,last) input") {
 	v.emplace_back(make_unique<string>("E"));
 
 	auto move_begin = make_move_iterator(v.begin() + 1);
-	auto move_end	= make_move_iterator(v.end());
+	auto move_end = make_move_iterator(v.end());
 
 	FixedList<unique_ptr<string>, 7> l;
 	l.emplace_back(make_unique<string>("A"));
@@ -748,8 +764,9 @@ struct InputThrowTest {
 	string s;
 
 	friend istream& operator>>(istream& stream, InputThrowTest& val) {
-		if (!counter--)
+		if (!counter--) {
 			throw TestException();
+		}
 
 		return stream >> val.s;
 	}
@@ -836,8 +853,9 @@ TEST_CASE("insert(pos,init) throw") {
 
 		X(const X& x) :
 			s(x.s) {
-			if (!counter--)
+			if (!counter--) {
 				throw TestException();
+			}
 		}
 
 		X(X&&) = default;
@@ -852,9 +870,10 @@ TEST_CASE("insert(pos,init) throw") {
 		thrown = true;
 
 		array arr {"A", "B", "C"};
-		auto  i = l.begin();
-		for (auto str : arr)
+		auto i = l.begin();
+		for (auto str : arr) {
 			REQUIRE(i++->s == str);
+		}
 	}
 	REQUIRE(thrown);
 }
@@ -886,8 +905,9 @@ TEST_CASE("emplace throw") {
 
 		X(int x) :
 			x(x) {
-			if (!counter--)
+			if (!counter--) {
 				throw TestException();
+			}
 		}
 	};
 
@@ -900,9 +920,10 @@ TEST_CASE("emplace throw") {
 		thrown = true;
 
 		array arr {3, 4, 5};
-		auto  i = l.begin();
-		for (int n : arr)
+		auto i = l.begin();
+		for (int n : arr) {
 			REQUIRE(i++->x == n);
+		}
 	}
 	REQUIRE(thrown);
 }
@@ -943,9 +964,10 @@ TEST_CASE("emplace_back throw") {
 		thrown = true;
 
 		array arr {3, 3, 3, 3, 3};
-		auto  i = arr.begin();
-		for (X n : l)
+		auto i = arr.begin();
+		for (X n : l) {
 			REQUIRE(*i++ == n.x);
+		}
 		REQUIRE(l.size() == 5);
 	}
 	REQUIRE(thrown);

@@ -24,9 +24,11 @@ namespace detail {
 				};
 
 				const ByteArray array = std::bit_cast<ByteArray>(value);
-				for (unsigned char byte : array.bytes)
-					if (byte != 0)
+				for (unsigned char byte : array.bytes) {
+					if (byte != 0) {
 						return false;
+					}
+				}
 
 				return true;
 			}
@@ -61,7 +63,7 @@ template<typename T, typename Allocator, typename Pointer, typename ConstPointer
 T* allocator_copy_initialize_n(Allocator& allocator, Pointer dst_ptr, ConstPointer src_ptr, SizeType alloc_count, size_t n) {
 	using AllocTraits = std::allocator_traits<Allocator>;
 
-	T*		 dst = std::to_address(dst_ptr);
+	T* dst = std::to_address(dst_ptr);
 	const T* src = std::to_address(src_ptr);
 	if constexpr (std::is_trivially_copyable_v<T>) {
 		std::memcpy(dst, src, sizeof(T) * n);
@@ -69,8 +71,9 @@ T* allocator_copy_initialize_n(Allocator& allocator, Pointer dst_ptr, ConstPoint
 	} else {
 		T* const end = dst + n;
 		try {
-			for (; dst != end; ++dst, ++src)
+			for (; dst != end; ++dst, ++src) {
 				AllocTraits::construct(allocator, dst, *src);
+			}
 		} catch (...) {
 			T* const begin = end - n;
 			while (dst != begin) {
@@ -93,8 +96,9 @@ void allocator_value_initialize_n(Allocator& allocator, Pointer storage, SizeTyp
 	} else {
 		T* const end = dst + n;
 		try {
-			for (; dst != end; ++dst)
+			for (; dst != end; ++dst) {
 				AllocTraits::construct(allocator, dst);
+			}
 		} catch (...) {
 			T* const begin = end - n;
 			while (dst != begin) {
@@ -118,8 +122,9 @@ void allocator_fill_initialize_n(Allocator& allocator, Pointer ptr, SizeType all
 	} else {
 		T* const end = dst + n;
 		try {
-			for (; dst != end; ++dst)
+			for (; dst != end; ++dst) {
 				AllocTraits::construct(allocator, dst, value);
+			}
 		} catch (...) {
 			T* const begin = end - n;
 			while (dst != begin) {

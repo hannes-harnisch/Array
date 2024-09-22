@@ -11,9 +11,9 @@ namespace hh {
 template<typename T>
 class CompactList {
 	struct Storage {
-		size_t count	= 0;
+		size_t count = 0;
 		size_t capacity = 0;
-		T	   data[];
+		T data[];
 	};
 
 	T* data_ptr;
@@ -26,15 +26,16 @@ public:
 	}
 
 	explicit CompactList(size_t count) {
-		Storage* storage  = static_cast<Storage*>(::operator new(sizeof(Storage) + sizeof(T) * count));
-		storage->count	  = count;
+		Storage* storage = static_cast<Storage*>(::operator new(sizeof(Storage) + sizeof(T) * count));
+		storage->count = count;
 		storage->capacity = count;
 
-		T*		 it	 = storage->data;
+		T* it = storage->data;
 		T* const end = it + count;
 		try {
-			for (; it != end; ++it)
+			for (; it != end; ++it) {
 				new (it) T();
+			}
 		} catch (...) {
 			T* const begin = end - count;
 			while (it != begin) {
@@ -50,7 +51,7 @@ public:
 
 	CompactList(const CompactList& other) {
 		Storage* storage = allocate_and_copy(other.storage());
-		data_ptr		 = storage->data;
+		data_ptr = storage->data;
 	}
 
 	CompactList(CompactList&& other) noexcept :
@@ -68,20 +69,23 @@ public:
 			if (data_ptr->capacity >= count) {
 				const bool this_larger = data_ptr->count > count;
 
-				T* it		= data_ptr->data;
+				T* it = data_ptr->data;
 				T* other_it = other.data_ptr->data;
-				T* end		= data_ptr->data + (this_larger ? count : data_ptr->count);
-				for (; it != end; ++it)
+				T* end = data_ptr->data + (this_larger ? count : data_ptr->count);
+				for (; it != end; ++it) {
 					*it = *other_it++;
+				}
 
 				if (this_larger) {
 					end = data_ptr->data + data_ptr->count;
-					for (; it != end; ++it)
+					for (; it != end; ++it) {
 						it->~T();
+					}
 				} else {
 					end = data_ptr->data + count;
-					for (; it != end; ++it)
+					for (; it != end; ++it) {
 						new (it) T(*other_it++);
+					}
 				}
 				data_ptr->count = count;
 			} else {
@@ -95,7 +99,7 @@ public:
 
 	CompactList& operator=(CompactList&& other) noexcept {
 		delete_data();
-		data_ptr	   = other.data_ptr;
+		data_ptr = other.data_ptr;
 		other.data_ptr = const_cast<Storage*>(&Empty);
 		return *this;
 	}
@@ -113,15 +117,17 @@ public:
 	}
 
 	T& at(size_t index) {
-		if (index < data_ptr->count)
+		if (index < data_ptr->count) {
 			return data_ptr->data[index];
+		}
 
 		throw std::out_of_range("index into list was out of range");
 	}
 
 	const T& at(size_t index) const {
-		if (index < data_ptr->count)
+		if (index < data_ptr->count) {
 			return data_ptr->data[index];
+		}
 
 		throw std::out_of_range("index into list was out of range");
 	}
@@ -172,8 +178,9 @@ public:
 
 	template<typename... Args>
 	T& emplace_back(Args&&... args) {
-		if (data_ptr->count == data_ptr->capacity)
+		if (data_ptr->count == data_ptr->capacity) {
 			grow();
+		}
 
 		T* new_elem = new (data_ptr->data + data_ptr->count) T(std::forward<Args>(args)...);
 		++data_ptr->count;
@@ -203,13 +210,15 @@ private:
 	}
 
 	void delete_data() noexcept {
-		if (data_ptr == Empty.data)
+		if (data_ptr == Empty.data) {
 			return;
+		}
 
 		if constexpr (!std::is_trivially_destructible_v<T>) {
 			T* const end = data_ptr->data + data_ptr->count;
-			for (T* it = data_ptr->data; it != end; ++it)
+			for (T* it = data_ptr->data; it != end; ++it) {
 				it->~T();
+			}
 		}
 
 		::operator delete(data_ptr);
@@ -218,19 +227,20 @@ private:
 	static Storage* allocate_and_copy(const Storage* source) {
 		const size_t count = source->count;
 
-		Storage* storage  = static_cast<Storage*>(::operator new(sizeof(Storage) + sizeof(T) * count));
-		storage->count	  = count;
+		Storage* storage = static_cast<Storage*>(::operator new(sizeof(Storage) + sizeof(T) * count));
+		storage->count = count;
 		storage->capacity = count;
 
 		if constexpr (std::is_trivially_copy_constructible_v<T>) {
 			std::memcpy(storage->data, source->data, sizeof(T) * count);
 		} else {
-			T*		 src = source->data;
-			T*		 dst = storage->data;
+			T* src = source->data;
+			T* dst = storage->data;
 			T* const end = dst + count;
 			try {
-				for (; dst != end; ++dst, ++src)
+				for (; dst != end; ++dst, ++src) {
 					new (dst) T(*src);
+				}
 			} catch (...) {
 				T* const begin = end - count;
 				while (dst != begin) {

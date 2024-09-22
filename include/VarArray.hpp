@@ -21,18 +21,18 @@ class VarArray :
 	using AllocTraits = std::allocator_traits<Allocator>;
 
 public:
-	using value_type	  = T;
-	using allocator_type  = Allocator;
-	using pointer		  = typename AllocTraits::pointer;
-	using const_pointer	  = typename AllocTraits::const_pointer;
-	using reference		  = T&;
+	using value_type = T;
+	using allocator_type = Allocator;
+	using pointer = typename AllocTraits::pointer;
+	using const_pointer = typename AllocTraits::const_pointer;
+	using reference = T&;
 	using const_reference = const T&;
-	using size_type		  = typename AllocTraits::size_type;
+	using size_type = typename AllocTraits::size_type;
 	using difference_type = typename AllocTraits::difference_type;
 
-	using iterator				 = ContiguousIterator<T, difference_type, pointer, const_pointer>;
-	using const_iterator		 = ContiguousConstIterator<T, difference_type, pointer, const_pointer>;
-	using reverse_iterator		 = std::reverse_iterator<iterator>;
+	using iterator = ContiguousIterator<T, difference_type, pointer, const_pointer>;
+	using const_iterator = ContiguousConstIterator<T, difference_type, pointer, const_pointer>;
+	using reverse_iterator = std::reverse_iterator<iterator>;
 	using const_reverse_iterator = std::reverse_iterator<const_iterator>;
 
 	// Creates an empty array.
@@ -69,7 +69,7 @@ public:
 		ptr(AllocTraits::allocate(get_alloc(), count)),
 		count(count) {
 		const size_t init_count = std::min(initializers.size(), static_cast<size_t>(count));
-		Allocator&	 alloc		= get_alloc();
+		Allocator& alloc = get_alloc();
 
 		T* dst = allocator_copy_initialize_n<T>(alloc, ptr, initializers.begin(), count, init_count);
 
@@ -78,15 +78,15 @@ public:
 	}
 
 	template<typename U>
-	constexpr VarArray(size_type				count,
+	constexpr VarArray(size_type count,
 					   std::initializer_list<T> initializers,
-					   const U&					fallback,
-					   const Allocator&			allocator = Allocator()) :
+					   const U& fallback,
+					   const Allocator& allocator = Allocator()) :
 		Allocator(allocator),
 		ptr(AllocTraits::allocate(get_alloc(), count)),
 		count(count) {
 		const size_t init_count = std::min(initializers.size(), static_cast<size_t>(count));
-		Allocator&	 alloc		= get_alloc();
+		Allocator& alloc = get_alloc();
 
 		T* dst = allocator_copy_initialize_n<T>(alloc, ptr, initializers.begin(), count, init_count);
 
@@ -118,7 +118,7 @@ public:
 		Allocator(std::move(other.get_alloc())),
 		ptr(other.ptr),
 		count(other.count) {
-		other.ptr	= nullptr;
+		other.ptr = nullptr;
 		other.count = 0;
 	}
 
@@ -127,8 +127,9 @@ public:
 	}
 
 	constexpr VarArray& operator=(const VarArray& other) {
-		if (this == &other)
+		if (this == &other) {
 			return *this;
+		}
 
 #ifndef NDEBUG
 		ContainerDebugBase::operator=(other);
@@ -139,22 +140,23 @@ public:
 		}
 
 		if (count == other.count) {
-			T*			 dst = std::to_address(ptr);
-			const T*	 src = std::to_address(other.ptr);
-			const size_t n	 = static_cast<size_t>(count);
+			T* dst = std::to_address(ptr);
+			const T* src = std::to_address(other.ptr);
+			const size_t n = static_cast<size_t>(count);
 			if constexpr (std::is_trivially_copy_assignable_v<T>) {
 				std::memcpy(dst, src, sizeof(T) * n);
 			} else {
 				T* const end = dst + n;
-				for (; dst != end; ++dst, ++src)
+				for (; dst != end; ++dst, ++src) {
 					*dst = *src;
+				}
 			}
 		} else {
 			delete_data();
 
 			Allocator& alloc = get_alloc();
 
-			ptr	  = AllocTraits::allocate(alloc, other.count);
+			ptr = AllocTraits::allocate(alloc, other.count);
 			count = other.count;
 			allocator_copy_initialize_n<T>(alloc, ptr, other.ptr, count, static_cast<size_t>(count));
 		}
@@ -171,10 +173,10 @@ public:
 		}
 
 		delete_data();
-		ptr	  = other.ptr;
+		ptr = other.ptr;
 		count = other.count;
 
-		other.ptr	= nullptr;
+		other.ptr = nullptr;
 		other.count = 0;
 		return *this;
 	}
@@ -220,29 +222,33 @@ public:
 	}
 
 	constexpr T& at(size_type index) {
-		if (index < count)
+		if (index < count) {
 			return ptr[index];
+		}
 
 		throw std::out_of_range("index out of range");
 	}
 
 	constexpr const T& at(size_type index) const {
-		if (index < count)
+		if (index < count) {
 			return ptr[index];
+		}
 
 		throw std::out_of_range("index out of range");
 	}
 
 	constexpr pointer get(size_type index) noexcept {
-		if (index < count)
+		if (index < count) {
 			return ptr + index;
+		}
 
 		return nullptr;
 	}
 
 	constexpr const_pointer get(size_type index) const noexcept {
-		if (index < count)
+		if (index < count) {
 			return ptr + index;
+		}
 
 		return nullptr;
 	}
@@ -299,7 +305,7 @@ public:
 
 	constexpr void reset() noexcept {
 		delete_data();
-		ptr	  = nullptr;
+		ptr = nullptr;
 		count = 0;
 	}
 
@@ -381,7 +387,7 @@ public:
 	}
 
 private:
-	pointer	  ptr;
+	pointer ptr;
 	size_type count;
 
 	constexpr Allocator& get_alloc() noexcept {
@@ -395,7 +401,7 @@ private:
 	constexpr void delete_data() noexcept {
 		if constexpr (!std::is_trivially_destructible_v<T>) {
 			T* const begin = std::to_address(ptr);
-			T*		 it	   = begin + count;
+			T* it = begin + count;
 			while (it != begin) {
 				--it;
 				AllocTraits::destroy(get_alloc(), it);
